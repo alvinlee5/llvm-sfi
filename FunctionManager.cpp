@@ -1,8 +1,5 @@
 /*
  * FunctionManager.cpp
- *
- *  Created on: Nov 24, 2018
- *      Author: alvin
  */
 #include "FunctionManager.hpp"
 
@@ -64,16 +61,18 @@ FunctionManager::FunctionManager(Module *mod)
 
 }
 
-/***Function summary - FunctionManager::insertMmapCall***
+/*** @@@ Function summary - FunctionManager::insertMmapCall @@@@
 Takes in a module and an instruction, and inserts a call to mmap()
 before the given instruction.
 
-Inputs:
+@Inputs:
 - pMod: pointer to a Module
 - inst: pointer to an instruction
+
+@brief:
 The call to mmap() is inserted before inst
 
-Outputs:
+@Outputs:
 - allocVar: "address" of newly allocated memory (represented in the LLVM C++ API)
 It's an "instruction", but can be simply thought of as the address of the newly
 allocated memory

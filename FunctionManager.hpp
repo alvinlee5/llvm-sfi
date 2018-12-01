@@ -1,8 +1,5 @@
 /*
  * FunctionManager.hpp
- *
- *  Created on: Nov 24, 2018
- *      Author: alvin
  */
 
 #include "llvm/IR/Function.h"
