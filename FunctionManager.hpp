@@ -13,15 +13,35 @@ using namespace llvm;
 
 class FunctionManager
 {
+	// Private by default, might need to specify public
+	public:
+		struct MallocArgs
+		{
+			// Union because the argument is either constant or not
+			// If not, we will store the value in a newly alloc'd variable
+			union
+			{
+				ConstantInt* constArg;
+				Instruction* allocaInst; // will be an allocInst
+			};
+			bool isConstantArg;
+		};
+
 	public:
 		FunctionManager(Module *mod);
 		AllocaInst* insertMmapCall(Module *M, Instruction *inst);
 		Function* getMmapFunction();
+		bool isMallocCall(CallInst *callInst);
+		bool isFreeCall(CallInst *callInst);
+		MallocArgs extractMallocArgs(CallInst *callInst);
+
+
 		void testFunction();
 
 	//members
 	private:
 		Function *m_pFuncMmap;
+		Module *m_pMod;
 
 	// helpers
 	private:

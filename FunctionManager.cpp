@@ -6,12 +6,14 @@
 #include "llvm/IR/Type.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Constants.h"
+#include "llvm/IR/CallSite.h"
 #include <stdio.h>
 
 using namespace llvm;
 
 FunctionManager::FunctionManager(Module *mod)
 {
+	m_pMod = mod;
 	// Put function arguments into vector
 	 std::vector<Type*> mmapFuncParams;
 	 PointerType* voidPtrType =
@@ -61,7 +63,7 @@ FunctionManager::FunctionManager(Module *mod)
 
 }
 
-/*** @@@ Function summary - FunctionManager::insertMmapCall @@@@
+/*** Function summary - FunctionManager::insertMmapCall ***
 Takes in a module and an instruction, and inserts a call to mmap()
 before the given instruction.
 
@@ -145,6 +147,70 @@ Function* FunctionManager::getMmapFunction()
 {
 	return m_pFuncMmap;
 }
+
+bool FunctionManager::isMallocCall(CallInst* callInst)
+{
+	Function* funcCalled = callInst->getCalledFunction();
+	StringRef funcName = funcCalled->getName();
+	StringRef strMalloc("malloc");
+	if (funcName.equals(strMalloc))
+	{
+		return true;
+	}
+	return false;
+}
+
+bool FunctionManager::isFreeCall(CallInst* callInst)
+{
+	Function* funcCalled = callInst->getCalledFunction();
+	StringRef funcName = funcCalled->getName();
+	StringRef strFree("free");
+	if (funcName.equals(strFree))
+	{
+		return true;
+	}
+	return false;
+}
+
+FunctionManager::MallocArgs FunctionManager::extractMallocArgs(CallInst *callInst)
+{
+	MallocArgs args;
+	CallSite CS(callInst);
+	for (auto arg = CS.arg_begin(); arg != CS.arg_end(); arg++)
+	{
+		printf("Count\n");
+
+		// For constant args, cast to ConstantInt. Pass this
+		// value into call to mmap()
+		if (ConstantInt* CI = dyn_cast<ConstantInt>(arg))
+		{
+			args.isConstantArg = true;
+			args.constArg = CI;
+		}
+		// For non-const args, cast to Inst. Load the value from
+		// this inst (then store it), and pass the loaded value
+		// into call to mmap()
+		else if (Instruction* Inst = dyn_cast<Instruction>(arg))
+		{
+			 // Constant Definitions
+			PointerType* intPtrType = PointerType::get(IntegerType::get(m_pMod->getContext(), 32), 0);
+			args.isConstantArg = false;
+			args.allocaInst = new AllocaInst(intPtrType, "mallocSize", callInst);
+			printf("%p\n", args.allocaInst);
+		}
+	}
+	return args;
+}
+
+
+
+
+
+
+
+
+
+
 
 void FunctionManager::testFunction()
 {

@@ -34,7 +34,8 @@ namespace {
 bool SandboxWritesPass::runOnModule(Module &M)
 {
 	FunctionManager funcManager(&M);
-
+	CallInst *mallocCall;
+	BitCastInst* bitCast;
 	for (Module::iterator F = M.begin(), ME = M.end(); F != ME; ++F)
 	{
 		for (Function::iterator BB = F->begin(), FE = F->end(); BB != FE; ++BB)
@@ -48,7 +49,7 @@ bool SandboxWritesPass::runOnModule(Module &M)
 				{
 					AllocaInst* inst = dyn_cast<AllocaInst>(Inst);
 
-					AllocaInst *ptr_test = funcManager.insertMmapCall(&M,
+/*					AllocaInst *ptr_test = funcManager.insertMmapCall(&M,
 							dyn_cast<Instruction>(Inst));
 
 					// Test for mmap:
@@ -65,7 +66,7 @@ bool SandboxWritesPass::runOnModule(Module &M)
 					Inst++;
 		    		StoreInst *store_inst = new StoreInst(ptr_23, inst,
 		    				dyn_cast<Instruction>(Inst));
-		    		Inst--;
+		    		Inst--;*/
 
 				}
 
@@ -78,13 +79,45 @@ bool SandboxWritesPass::runOnModule(Module &M)
 					// we split a basic block.
 					//break;
 				}
+
+				if (isa<CallInst>(Inst))
+				{
+					CallInst *callInst = dyn_cast<CallInst>(Inst);
+					if (funcManager.isMallocCall(callInst))
+					{
+						mallocCall = callInst;
+						FunctionManager::MallocArgs args = funcManager.
+								extractMallocArgs(callInst);
+						errs()<<args.allocaInst;
+						errs()<<"\n";
+					}
+
+					if (funcManager.isFreeCall(callInst))
+					{
+						errs() << "Free\n";
+						bool test = (bitCast == callInst->getOperand(0));
+						errs() << test;
+						errs() << " DA RESULT\n";
+					}
+				}
+
+				if (isa<BitCastInst>(Inst))
+				{
+					errs() << "Bitcast.\n";
+					BitCastInst* bitCastInst = dyn_cast<BitCastInst>(Inst);
+					bool test = (mallocCall == bitCastInst->getOperand(0));
+					if (!test)
+					{
+						bitCast = bitCastInst;
+					}
+				}
 			}
 		}
 	}
 	return false;
 }
 
-/*** @@@ Function summary - SandboxWritesPass::SandBoxWrites @@@
+/*** Function summary - SandboxWritesPass::SandBoxWrites ***
 Takes in a module and an instruction, and inserts a call to mmap()
 before the given instruction.
 
