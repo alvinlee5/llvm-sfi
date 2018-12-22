@@ -7,6 +7,7 @@
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/CallSite.h"
+#include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include <stdio.h>
 
 using namespace llvm;
@@ -63,43 +64,39 @@ FunctionManager::FunctionManager(Module *mod)
 
 }
 
-/*** Function summary - FunctionManager::insertMmapCall ***
-Takes in a module and an instruction, and inserts a call to mmap()
+/*** Function summary - FunctionManager::replaceMallocWithMmap ***
+Takes in an instruction, and replaces it with a call to
 before the given instruction.
 
 @Inputs:
-- pMod: pointer to a Module
-- inst: pointer to an instruction
+- inst: pointer to an instruction (should be the CallInst to malloc)
 
 @brief:
-The call to mmap() is inserted before inst
+The CallInst to malloc() is replaced with a call to mmap()
 
 @Outputs:
-- allocVar: "address" of newly allocated memory (represented in the LLVM C++ API)
-It's an "instruction", but can be simply thought of as the address of the newly
-allocated memory
-
+- mmapCallInst: The CallInst to mmap() that replaced the CallInst to malloc()
 */
-AllocaInst* FunctionManager::insertMmapCall(Module *pMod, Instruction *inst)
+
+// MallocArgs should also be an argument to choose size of the mapping
+Instruction* FunctionManager::replaceMallocWithMmap(Instruction *inst/*, MallocArgs args*/)
 {
 	 // Constant Definitions
-	PointerType* voidPtrType = PointerType::get(IntegerType::get(pMod->getContext(), 8), 0);
+	PointerType* voidPtrType = PointerType::get(IntegerType::get(m_pMod->getContext(), 8), 0);
 
 	// TODO: The address we map memory to should not be a constant, and the byte to alloc as well
 	// Address to mmap must be read from a variable at runtime (inserting a global to keep track
 	// is probably required)
-	ConstantInt* addrToMapMem = ConstantInt::get(pMod->getContext(), APInt(64, StringRef("196608"), 10));
+	ConstantInt* addrToMapMem = ConstantInt::get(m_pMod->getContext(), APInt(64, StringRef("196608"), 10));
 	Constant* ptrToMmapAddr = ConstantExpr::getCast(Instruction::IntToPtr, addrToMapMem, voidPtrType);
-	ConstantInt* bytesToAlloc = ConstantInt::get(pMod->getContext(), APInt(64, StringRef("4"), 10));
-	ConstantInt* mmap_prot_arg = ConstantInt::get(pMod->getContext(), APInt(32, StringRef("3"), 10));
-	ConstantInt* mmap_flags_arg = ConstantInt::get(pMod->getContext(), APInt(32, StringRef("50"), 10));
-	ConstantInt* mmap_fd_arg = ConstantInt::get(pMod->getContext(), APInt(32, StringRef("-1"), 10));
-	ConstantInt* mmap_offset_arg = ConstantInt::get(pMod->getContext(), APInt(64, StringRef("0"), 10));
+	ConstantInt* bytesToAlloc = ConstantInt::get(m_pMod->getContext(), APInt(64, StringRef("4"), 10));
+	ConstantInt* mmap_prot_arg = ConstantInt::get(m_pMod->getContext(), APInt(32, StringRef("3"), 10));
+	ConstantInt* mmap_flags_arg = ConstantInt::get(m_pMod->getContext(), APInt(32, StringRef("50"), 10));
+	ConstantInt* mmap_fd_arg = ConstantInt::get(m_pMod->getContext(), APInt(32, StringRef("-1"), 10));
+	ConstantInt* mmap_offset_arg = ConstantInt::get(m_pMod->getContext(), APInt(64, StringRef("0"), 10));
 
 	AllocaInst* pMmapAddr = new AllocaInst(voidPtrType, "pMmapAddr", inst);
 	pMmapAddr->setAlignment(8);
-	AllocaInst* allocVar = new AllocaInst(voidPtrType, "AllocVar", inst);
-	allocVar->setAlignment(8);
 	StoreInst* void_17 = new StoreInst(ptrToMmapAddr, pMmapAddr, false, inst);
 	void_17->setAlignment(8);
 	LoadInst* mmapAddr = new LoadInst(pMmapAddr, "", false, inst);
@@ -111,8 +108,9 @@ AllocaInst* FunctionManager::insertMmapCall(Module *pMod, Instruction *inst)
 	mmapFuncParams.push_back(mmap_flags_arg);
 	mmapFuncParams.push_back(mmap_fd_arg);
 	mmapFuncParams.push_back(mmap_offset_arg);
+
 	CallInst* mmapCallInst = CallInst::Create(m_pFuncMmap,
-			mmapFuncParams, "", inst);
+			mmapFuncParams, ""/*, inst*/);
 	mmapCallInst->setCallingConv(CallingConv::C);
 	mmapCallInst->setTailCall(false);
 	AttributeSet mmap_PAL;
@@ -122,23 +120,17 @@ AllocaInst* FunctionManager::insertMmapCall(Module *pMod, Instruction *inst)
 	{
 	 AttrBuilder B;
 	 B.addAttribute(Attribute::NoUnwind);
-	 PAS = AttributeSet::get(pMod->getContext(), ~0U, B);
+	 PAS = AttributeSet::get(m_pMod->getContext(), ~0U, B);
 	}
 
 	Attrs.push_back(PAS);
-	mmap_PAL = AttributeSet::get(pMod->getContext(), Attrs);
+	mmap_PAL = AttributeSet::get(m_pMod->getContext(), Attrs);
 
 	}
 	mmapCallInst->setAttributes(mmap_PAL);
 
-	// cast the result of the mmap call from void pointer type to int pointer type
-	//CastInst* castedAddress = new BitCastInst(mmapCallInst, intPtrType, "", inst);
-
-	// store the address returned from mmap in a newly allocated integer pointer variable
-	StoreInst* storeInst = new StoreInst(mmapCallInst, allocVar, false, inst);
-	storeInst->setAlignment(8);
-
-	return allocVar;
+	ReplaceInstWithInst(inst, mmapCallInst);
+	return mmapCallInst;
 }
 
 Function* FunctionManager::getMmapFunction()
@@ -176,8 +168,6 @@ FunctionManager::MallocArgs FunctionManager::extractMallocArgs(CallInst *callIns
 	CallSite CS(callInst);
 	for (auto arg = CS.arg_begin(); arg != CS.arg_end(); arg++)
 	{
-		printf("Count\n");
-
 		// For constant args, cast to ConstantInt. Pass this
 		// value into call to mmap()
 		if (ConstantInt* CI = dyn_cast<ConstantInt>(arg))
@@ -190,27 +180,16 @@ FunctionManager::MallocArgs FunctionManager::extractMallocArgs(CallInst *callIns
 		// into call to mmap()
 		else if (Instruction* Inst = dyn_cast<Instruction>(arg))
 		{
-			 // Constant Definitions
 			Type* intType = IntegerType::get(m_pMod->getContext(), 64);
 			args.isConstantArg = false;
+			// Insert Variable to store the argument passed to malloc
+			// This is required for the new call to mmap (size to map)
 			args.allocaInst = new AllocaInst(intType, "mallocSize", callInst);
-			//LoadInst* loadInst = new LoadInst(Inst, "", false, callInst);
 			new StoreInst(Inst, args.allocaInst, callInst);
-			printf("%p\n", args.allocaInst);
 		}
 	}
 	return args;
 }
-
-
-
-
-
-
-
-
-
-
 
 void FunctionManager::testFunction()
 {

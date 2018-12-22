@@ -29,7 +29,7 @@ class FunctionManager
 
 	public:
 		FunctionManager(Module *mod);
-		AllocaInst* insertMmapCall(Module *M, Instruction *inst);
+		Instruction* replaceMallocWithMmap(Instruction *inst);
 		Function* getMmapFunction();
 		bool isMallocCall(CallInst *callInst);
 		bool isFreeCall(CallInst *callInst);

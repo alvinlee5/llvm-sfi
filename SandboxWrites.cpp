@@ -88,22 +88,19 @@ bool SandboxWritesPass::runOnModule(Module &M)
 						mallocCall = callInst;
 						FunctionManager::MallocArgs args = funcManager.
 								extractMallocArgs(callInst);
-						errs()<<args.allocaInst;
-						errs()<<"\n";
+						Instruction* newInst = funcManager.replaceMallocWithMmap(callInst);
+						BasicBlock::iterator BI(newInst);
+						Inst = BI;
 					}
-
 					if (funcManager.isFreeCall(callInst))
 					{
 						errs() << "Free\n";
 						bool test = (bitCast == callInst->getOperand(0));
 						errs() << test;
-						errs() << " DA RESULT\n";
 					}
 				}
-
 				if (isa<BitCastInst>(Inst))
 				{
-					errs() << "Bitcast.\n";
 					BitCastInst* bitCastInst = dyn_cast<BitCastInst>(Inst);
 					bool test = (mallocCall == bitCastInst->getOperand(0));
 					if (!test)
