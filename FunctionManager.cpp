@@ -193,9 +193,11 @@ FunctionManager::MallocArgs FunctionManager::extractMallocArgs(CallInst *callIns
 		else if (Instruction* Inst = dyn_cast<Instruction>(arg))
 		{
 			 // Constant Definitions
-			PointerType* intPtrType = PointerType::get(IntegerType::get(m_pMod->getContext(), 32), 0);
+			Type* intType = IntegerType::get(m_pMod->getContext(), 64);
 			args.isConstantArg = false;
-			args.allocaInst = new AllocaInst(intPtrType, "mallocSize", callInst);
+			args.allocaInst = new AllocaInst(intType, "mallocSize", callInst);
+			//LoadInst* loadInst = new LoadInst(Inst, "", false, callInst);
+			new StoreInst(Inst, args.allocaInst, callInst);
 			printf("%p\n", args.allocaInst);
 		}
 	}
