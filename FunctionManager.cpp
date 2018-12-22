@@ -85,7 +85,9 @@ AllocaInst* FunctionManager::insertMmapCall(Module *pMod, Instruction *inst)
 	 // Constant Definitions
 	PointerType* voidPtrType = PointerType::get(IntegerType::get(pMod->getContext(), 8), 0);
 
-	// TODO: The address we map memory to should not be a constant
+	// TODO: The address we map memory to should not be a constant, and the byte to alloc as well
+	// Address to mmap must be read from a variable at runtime (inserting a global to keep track
+	// is probably required)
 	ConstantInt* addrToMapMem = ConstantInt::get(pMod->getContext(), APInt(64, StringRef("196608"), 10));
 	Constant* ptrToMmapAddr = ConstantExpr::getCast(Instruction::IntToPtr, addrToMapMem, voidPtrType);
 	ConstantInt* bytesToAlloc = ConstantInt::get(pMod->getContext(), APInt(64, StringRef("4"), 10));
@@ -94,13 +96,9 @@ AllocaInst* FunctionManager::insertMmapCall(Module *pMod, Instruction *inst)
 	ConstantInt* mmap_fd_arg = ConstantInt::get(pMod->getContext(), APInt(32, StringRef("-1"), 10));
 	ConstantInt* mmap_offset_arg = ConstantInt::get(pMod->getContext(), APInt(64, StringRef("0"), 10));
 
-	// TODO: The final pointer type we cast to is not always int, likely need to get the type
-	// from the malloc/new inst or the AllocInst that's originally being stored to...
-	PointerType* intPtrType = PointerType::get(IntegerType::get(pMod->getContext(), 32), 0);
-
 	AllocaInst* pMmapAddr = new AllocaInst(voidPtrType, "pMmapAddr", inst);
 	pMmapAddr->setAlignment(8);
-	AllocaInst* allocVar = new AllocaInst(intPtrType, "AllocVar", inst);
+	AllocaInst* allocVar = new AllocaInst(voidPtrType, "AllocVar", inst);
 	allocVar->setAlignment(8);
 	StoreInst* void_17 = new StoreInst(ptrToMmapAddr, pMmapAddr, false, inst);
 	void_17->setAlignment(8);
@@ -134,10 +132,10 @@ AllocaInst* FunctionManager::insertMmapCall(Module *pMod, Instruction *inst)
 	mmapCallInst->setAttributes(mmap_PAL);
 
 	// cast the result of the mmap call from void pointer type to int pointer type
-	CastInst* castedAddress = new BitCastInst(mmapCallInst, intPtrType, "", inst);
+	//CastInst* castedAddress = new BitCastInst(mmapCallInst, intPtrType, "", inst);
 
 	// store the address returned from mmap in a newly allocated integer pointer variable
-	StoreInst* storeInst = new StoreInst(castedAddress, allocVar, false, inst);
+	StoreInst* storeInst = new StoreInst(mmapCallInst, allocVar, false, inst);
 	storeInst->setAlignment(8);
 
 	return allocVar;
