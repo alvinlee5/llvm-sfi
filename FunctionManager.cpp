@@ -141,6 +141,19 @@ Function* FunctionManager::getMmapFunction()
 bool FunctionManager::isMallocCall(CallInst* callInst)
 {
 	Function* funcCalled = callInst->getCalledFunction();
+	if (!funcCalled)
+	{
+		Value* v = callInst->getCalledValue();
+		Value* sv = v->stripPointerCasts();
+		StringRef funcName = sv->getName();
+		StringRef strMalloc("malloc");
+		if (funcName.equals(strMalloc))
+		{
+			return true;
+		}
+		return false;
+	}
+
 	StringRef funcName = funcCalled->getName();
 	StringRef strMalloc("malloc");
 	if (funcName.equals(strMalloc))
@@ -153,6 +166,19 @@ bool FunctionManager::isMallocCall(CallInst* callInst)
 bool FunctionManager::isFreeCall(CallInst* callInst)
 {
 	Function* funcCalled = callInst->getCalledFunction();
+	if (!funcCalled)
+	{
+		Value* v = callInst->getCalledValue();
+		Value* sv = v->stripPointerCasts();
+		StringRef funcName = sv->getName();
+		StringRef strFree("free");
+		if (funcName.equals(strFree))
+		{
+			return true;
+		}
+		return false;
+	}
+
 	StringRef funcName = funcCalled->getName();
 	StringRef strFree("free");
 	if (funcName.equals(strFree))
