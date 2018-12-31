@@ -6,6 +6,7 @@
 
 
 #include "llvm/IR/Module.h"
+#include "llvm/IR/Constants.h"
 using namespace llvm;
 
 // This class will manage/hold the "non basic" types which are inserted
@@ -16,12 +17,14 @@ class TypeManager
 	public:
 		TypeManager(Module *mod);
 		void InitFreeMemBlockTy();
+		PointerType* GetFreeMemBlockPtTy();
+		ConstantPointerNull* GetFreeMemBlockNull();
 
 	private:
 		Module *m_pMod;
 		PointerType *m_pFreeMemBlockPtTy;
 		StructType *m_pFreeMemBlockStructTy;
-
+		ConstantPointerNull *m_pFreeMemBlockNull;
 };
 
 

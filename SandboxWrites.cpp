@@ -22,20 +22,26 @@ using namespace llvm;
 namespace {
   struct SandboxWritesPass : public ModulePass {
     static char ID;
-    SandboxWritesPass() : ModulePass(ID) {}
+    SandboxWritesPass() : ModulePass(ID)
+    {
+    	m_pFreeMemBlockHead = NULL;
+    }
     virtual bool runOnModule(Module &M);
     void SandBoxWrites(Module *pMod, StoreInst* inst, Function::iterator *BB,
     		Value* upperBound, Value* lowerBound);
+    void InsertGlobalVars(Module *pMod, TypeManager* typeManager);
 
+    // Make inserted globals members for now for easy access
+    GlobalVariable *m_pFreeMemBlockHead;
   };
 }
-
-
 
 bool SandboxWritesPass::runOnModule(Module &M)
 {
 	TypeManager typeManager (&M);
 	FunctionManager funcManager(&M);
+	InsertGlobalVars(&M, &typeManager);
+
 	CallInst *mallocCall;
 	BitCastInst* bitCast;
 	for (Module::iterator F = M.begin(), ME = M.end(); F != ME; ++F)
@@ -203,6 +209,18 @@ void SandboxWritesPass::SandBoxWrites(Module *pMod, StoreInst* inst, Function::i
 	StoreInst *store_inst2 = new StoreInst(const_int, inst->getOperand(1),
 			innerIfBB->getTerminator());
 
+}
+
+void SandboxWritesPass::InsertGlobalVars(Module *pMod, TypeManager* typeManager)
+{
+	m_pFreeMemBlockHead = new GlobalVariable(/*Module=*/*pMod,
+			 /*Type=*/typeManager->GetFreeMemBlockPtTy(),
+			 /*isConstant=*/false,
+			 /*Linkage=*/GlobalValue::ExternalLinkage,
+			 /*Initializer=*/0, // has initializer, specified below
+			 /*Name=*/"head");
+	m_pFreeMemBlockHead->setAlignment(8);
+	m_pFreeMemBlockHead->setInitializer(typeManager->GetFreeMemBlockNull());
 }
 
 char SandboxWritesPass::ID = 0;

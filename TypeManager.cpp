@@ -31,4 +31,15 @@ void TypeManager::InitFreeMemBlockTy()
 	{
 		m_pFreeMemBlockStructTy->setBody(FreeMemBlock_fields, /*isPacked=*/false);
 	}
+	m_pFreeMemBlockNull = ConstantPointerNull::get(m_pFreeMemBlockPtTy);
+}
+
+PointerType* TypeManager::GetFreeMemBlockPtTy()
+{
+	return m_pFreeMemBlockPtTy;
+}
+
+ConstantPointerNull* TypeManager::GetFreeMemBlockNull()
+{
+	return m_pFreeMemBlockNull;
 }
