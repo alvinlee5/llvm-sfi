@@ -64,6 +64,74 @@ FunctionManager::FunctionManager(Module *mod)
 
 }
 
+/***Function summary - FunctionManager::insertMmapCall***
+Takes in a module and an instruction, and inserts a call to mmap()
+before the given instruction.
+Inputs:
+- inst: pointer to an instruction
+The call to mmap() is inserted before inst
+Outputs:
+- allocVar: "address" of newly allocated memory (represented in the LLVM C++ API)
+It's an "instruction", but can be simply thought of as the address of the newly
+allocated memory
+*/
+AllocaInst* FunctionManager::insertMmapCall(Instruction *inst)
+{
+	 // Constant Definitions
+	PointerType* voidPtrType = PointerType::get(IntegerType::get(m_pMod->getContext(), 8), 0);
+
+	// TODO: The address we map memory to should not be a constant
+	ConstantInt* addrToMapMem = ConstantInt::get(m_pMod->getContext(), APInt(64, StringRef("196608"), 10));
+	Constant* ptrToMmapAddr = ConstantExpr::getCast(Instruction::IntToPtr, addrToMapMem, voidPtrType);
+	ConstantInt* bytesToAlloc = ConstantInt::get(m_pMod->getContext(), APInt(64, StringRef("4"), 10));
+	ConstantInt* mmap_prot_arg = ConstantInt::get(m_pMod->getContext(), APInt(32, StringRef("3"), 10));
+	ConstantInt* mmap_flags_arg = ConstantInt::get(m_pMod->getContext(), APInt(32, StringRef("50"), 10));
+	ConstantInt* mmap_fd_arg = ConstantInt::get(m_pMod->getContext(), APInt(32, StringRef("-1"), 10));
+	ConstantInt* mmap_offset_arg = ConstantInt::get(m_pMod->getContext(), APInt(64, StringRef("0"), 10));
+
+	AllocaInst* pMmapAddr = new AllocaInst(voidPtrType, "pMmapAddr", inst);
+	pMmapAddr->setAlignment(8);
+	AllocaInst* allocVar = new AllocaInst(voidPtrType, "AllocVar", inst);
+	allocVar->setAlignment(8);
+	StoreInst* void_17 = new StoreInst(ptrToMmapAddr, pMmapAddr, false, inst);
+	void_17->setAlignment(8);
+	LoadInst* mmapAddr = new LoadInst(pMmapAddr, "", false, inst);
+	mmapAddr->setAlignment(8);
+	std::vector<Value*> mmapFuncParams;
+	mmapFuncParams.push_back(mmapAddr);
+	mmapFuncParams.push_back(bytesToAlloc);
+	mmapFuncParams.push_back(mmap_prot_arg);
+	mmapFuncParams.push_back(mmap_flags_arg);
+	mmapFuncParams.push_back(mmap_fd_arg);
+	mmapFuncParams.push_back(mmap_offset_arg);
+	CallInst* mmapCallInst = CallInst::Create(m_pFuncMmap,
+			mmapFuncParams, "", inst);
+	mmapCallInst->setCallingConv(CallingConv::C);
+	mmapCallInst->setTailCall(false);
+	AttributeSet mmap_PAL;
+	{
+	SmallVector<AttributeSet, 4> Attrs;
+	AttributeSet PAS;
+	{
+	 AttrBuilder B;
+	 B.addAttribute(Attribute::NoUnwind);
+	 PAS = AttributeSet::get(m_pMod->getContext(), ~0U, B);
+	}
+
+	Attrs.push_back(PAS);
+	mmap_PAL = AttributeSet::get(m_pMod->getContext(), Attrs);
+
+	}
+	mmapCallInst->setAttributes(mmap_PAL);
+
+	// store the address returned from mmap in a newly allocated void pointer variable
+	StoreInst* storeInst = new StoreInst(mmapCallInst, allocVar, false, inst);
+	storeInst->setAlignment(8);
+
+	return allocVar;
+}
+
+
 /*** Function summary - FunctionManager::replaceMallocWithMmap ***
 Takes in an instruction, and replaces it with a call to
 before the given instruction.

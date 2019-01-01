@@ -29,8 +29,13 @@ class FunctionManager
 
 	public:
 		FunctionManager(Module *mod);
+
+		// mmap related functions
 		Instruction* replaceMallocWithMmap(Instruction *inst);
 		Function* getMmapFunction();
+		AllocaInst* insertMmapCall(Instruction *inst);
+
+		// Malloc related calls
 		bool isMallocCall(CallInst *callInst);
 		bool isFreeCall(CallInst *callInst);
 		MallocArgs extractMallocArgs(CallInst *callInst);

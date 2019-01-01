@@ -57,7 +57,7 @@ bool SandboxWritesPass::runOnModule(Module &M)
 				{
 					AllocaInst* inst = dyn_cast<AllocaInst>(Inst);
 
-/*					AllocaInst *ptr_test = funcManager.insertMmapCall(&M,
+					AllocaInst *ptr_test = funcManager.insertMmapCall(
 							dyn_cast<Instruction>(Inst));
 
 					// Test for mmap:
@@ -74,7 +74,7 @@ bool SandboxWritesPass::runOnModule(Module &M)
 					Inst++;
 		    		StoreInst *store_inst = new StoreInst(ptr_23, inst,
 		    				dyn_cast<Instruction>(Inst));
-		    		Inst--;*/
+		    		Inst--;
 
 				}
 
