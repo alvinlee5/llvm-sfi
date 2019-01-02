@@ -25,6 +25,7 @@ namespace {
     SandboxWritesPass() : ModulePass(ID)
     {
     	m_pFreeMemBlockHead = NULL;
+    	m_pHaveAllocedMem = NULL;
     }
     virtual bool runOnModule(Module &M);
     void SandBoxWrites(Module *pMod, StoreInst* inst, Function::iterator *BB,
@@ -33,6 +34,7 @@ namespace {
 
     // Make inserted globals members for now for easy access
     GlobalVariable *m_pFreeMemBlockHead;
+    GlobalVariable *m_pHaveAllocedMem;
   };
 }
 
@@ -213,6 +215,7 @@ void SandboxWritesPass::SandBoxWrites(Module *pMod, StoreInst* inst, Function::i
 
 void SandboxWritesPass::InsertGlobalVars(Module *pMod, TypeManager* typeManager)
 {
+	/*Head of free memory linked list*/
 	m_pFreeMemBlockHead = new GlobalVariable(/*Module=*/*pMod,
 			 /*Type=*/typeManager->GetFreeMemBlockPtTy(),
 			 /*isConstant=*/false,
@@ -221,6 +224,18 @@ void SandboxWritesPass::InsertGlobalVars(Module *pMod, TypeManager* typeManager)
 			 /*Name=*/"head");
 	m_pFreeMemBlockHead->setAlignment(8);
 	m_pFreeMemBlockHead->setInitializer(typeManager->GetFreeMemBlockNull());
+
+	/*Boolean to keep track if mem has been alloced*/
+	m_pHaveAllocedMem = new GlobalVariable(/*Module=*/*pMod,
+			 /*Type=*/IntegerType::get(pMod->getContext(), 32),
+			 /*isConstant=*/false,
+			 /*Linkage=*/GlobalValue::ExternalLinkage,
+			 /*Initializer=*/0, // has initializer, specified below
+			 /*Name=*/"haveAllocedMem");
+	m_pHaveAllocedMem->setAlignment(4);
+	ConstantInt* const_int32_val0 = ConstantInt::get(pMod->getContext(),
+			APInt(32, StringRef("0"), 10));
+	m_pHaveAllocedMem->setInitializer(const_int32_val0);
 }
 
 char SandboxWritesPass::ID = 0;
