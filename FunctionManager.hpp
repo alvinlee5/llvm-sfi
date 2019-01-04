@@ -5,6 +5,7 @@
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Instructions.h"
+#include "TypeManager.hpp"
 using namespace llvm;
 
 
@@ -28,18 +29,22 @@ class FunctionManager
 		};
 
 	public:
-		FunctionManager(Module *mod);
+		FunctionManager(Module *pMod, TypeManager *pTypeManager,
+				GlobalVariable *freeMemBlockHead, GlobalVariable *haveAllocedMem);
 
 		// mmap related functions
 		Instruction* replaceMallocWithMmap(Instruction *inst);
 		Function* getMmapFunction();
-		AllocaInst* insertMmapCall(Instruction *inst);
+		CallInst* insertMmapCall(Instruction *inst);
 
 		// Malloc related calls
 		bool isMallocCall(CallInst *callInst);
 		bool isFreeCall(CallInst *callInst);
+		bool isMmapCall(CallInst *callInst); // for debugging
 		MallocArgs extractMallocArgs(CallInst *callInst);
 
+		// custom malloc functions
+		CallInst* insertAddMemoryBlockCall(Instruction *inst, Value *param);
 
 		void testFunction();
 
@@ -47,11 +52,20 @@ class FunctionManager
 	private:
 		Function *m_pFuncMmap;
 		Module *m_pMod;
+		TypeManager* m_pTypeManager;
+
+		// custom malloc functions
+		Function* m_pFuncAddMemBlock;
+
+		// Globals we need access to (makes sense to put them here?)
+	    GlobalVariable *m_pFreeMemBlockHead;
+	    GlobalVariable *m_pHaveAllocedMem;
 
 	// helpers
 	private:
-
-
+		void declareMmap();
+		void declareAddMemoryBlock();
+		void defineAddMemoryBlock();
 };
 
 

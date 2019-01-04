@@ -41,8 +41,8 @@ namespace {
 bool SandboxWritesPass::runOnModule(Module &M)
 {
 	TypeManager typeManager (&M);
-	FunctionManager funcManager(&M);
 	InsertGlobalVars(&M, &typeManager);
+	FunctionManager funcManager(&M, &typeManager, m_pFreeMemBlockHead, m_pHaveAllocedMem);
 
 	CallInst *mallocCall;
 	BitCastInst* bitCast;
@@ -57,37 +57,37 @@ bool SandboxWritesPass::runOnModule(Module &M)
 				// the memory address of the allocated memory
 				if (isa<AllocaInst>(Inst))
 				{
-					AllocaInst* inst = dyn_cast<AllocaInst>(Inst);
+/*					AllocaInst* inst = dyn_cast<AllocaInst>(Inst);
 
-					AllocaInst *ptr_test = funcManager.insertMmapCall(
+					CallInst *ptr_test = funcManager.insertMmapCall(
 							dyn_cast<Instruction>(Inst));
 
 					// Test for mmap:
 					// 1. Have pointer variable point to new mmaped memory
 					// 2. Assign a value to the memory
 					// 3. Print from the actual source file
-					LoadInst* ptr_23 = new LoadInst(ptr_test, "", false, inst);
-					ptr_23->setAlignment(8);
+					//LoadInst* ptr_23 = new LoadInst(ptr_test, "", false, inst);
+					//ptr_23->setAlignment(8);
 					ConstantInt* const_int32_99 = ConstantInt::get(M.getContext(),
 							APInt(64, StringRef("999"), 10));
-					StoreInst* void_24 = new StoreInst(const_int32_99, ptr_23, false, inst);
+					StoreInst* void_24 = new StoreInst(const_int32_99, ptr_test, false, inst);
 					void_24->setAlignment(4);
 
 					Inst++;
-		    		StoreInst *store_inst = new StoreInst(ptr_23, inst,
+		    		StoreInst *store_inst = new StoreInst(ptr_test, inst,
 		    				dyn_cast<Instruction>(Inst));
-		    		Inst--;
+		    		Inst--;*/
 
 				}
 
 				if (isa<StoreInst>(Inst))
 				{
-					StoreInst* inst = dyn_cast<StoreInst>(Inst);
-					//SandBoxWrites(&M, inst, &BB, NULL, NULL);
+/*					StoreInst* inst = dyn_cast<StoreInst>(Inst);
+					SandBoxWrites(&M, inst, &BB, NULL, NULL);
 
 					// Break since current iterator is invalidated after
 					// we split a basic block.
-					//break;
+					break;*/
 				}
 
 				if (isa<CallInst>(Inst))
@@ -95,6 +95,7 @@ bool SandboxWritesPass::runOnModule(Module &M)
 					CallInst *callInst = dyn_cast<CallInst>(Inst);
 					if (funcManager.isMallocCall(callInst))
 					{
+						errs() << "Malloc\n";
 						mallocCall = callInst;
 						FunctionManager::MallocArgs args = funcManager.
 								extractMallocArgs(callInst);
@@ -108,14 +109,29 @@ bool SandboxWritesPass::runOnModule(Module &M)
 						bool test = (bitCast == callInst->getOperand(0));
 						errs() << test;
 					}
-				}
-				if (isa<BitCastInst>(Inst))
-				{
-					BitCastInst* bitCastInst = dyn_cast<BitCastInst>(Inst);
-					bool test = (mallocCall == bitCastInst->getOperand(0));
-					if (!test)
+					if (funcManager.isMmapCall(callInst))
 					{
-						bitCast = bitCastInst;
+						errs()<<"Mmap\n";
+						AllocaInst* secBlock = new AllocaInst(
+								typeManager.GetFreeMemBlockPtTy(), "secBlock", callInst);
+						StoreInst *storeMmapInGvar = new StoreInst(callInst,
+								m_pFreeMemBlockHead, false, callInst->getNextNode());
+						CastInst* ptrCast = new PtrToIntInst(callInst,
+								IntegerType::get(M.getContext(), 64), "",
+								storeMmapInGvar->getNextNode());
+						ConstantInt* int8192 = ConstantInt::get(M.getContext(),
+								APInt(32, StringRef("8192"), 10));
+						BinaryOperator* addInst = BinaryOperator::Create(Instruction::Add,
+							  ptrCast, int8192, "", ptrCast->getNextNode());
+						CastInst* ptr_127 = new IntToPtrInst(addInst,
+								typeManager.GetFreeMemBlockPtTy(), "", addInst->getNextNode());
+						StoreInst *last = new StoreInst(ptr_127, secBlock,
+								typeManager.GetFreeMemBlockPtTy(),
+								false, ptr_127->getNextNode());
+						LoadInst *load = new LoadInst(secBlock, "", false, last->getNextNode());
+						funcManager.insertAddMemoryBlockCall(load->getNextNode(), load);
+
+
 					}
 				}
 			}

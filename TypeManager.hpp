@@ -18,6 +18,7 @@ class TypeManager
 		TypeManager(Module *mod);
 		void InitFreeMemBlockTy();
 		PointerType* GetFreeMemBlockPtTy();
+		StructType* GetFreeMemBlockStructTy();
 		ConstantPointerNull* GetFreeMemBlockNull();
 
 	private:

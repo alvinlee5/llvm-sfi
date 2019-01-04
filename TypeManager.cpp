@@ -39,6 +39,11 @@ PointerType* TypeManager::GetFreeMemBlockPtTy()
 	return m_pFreeMemBlockPtTy;
 }
 
+StructType* TypeManager::GetFreeMemBlockStructTy()
+{
+	return m_pFreeMemBlockStructTy;
+}
+
 ConstantPointerNull* TypeManager::GetFreeMemBlockNull()
 {
 	return m_pFreeMemBlockNull;
