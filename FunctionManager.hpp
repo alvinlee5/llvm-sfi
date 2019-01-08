@@ -55,8 +55,9 @@ class FunctionManager
 		TypeManager* m_pTypeManager;
 
 		// custom malloc functions
-		Function* m_pFuncAddMemBlock;
-		Function* m_pFuncSplitMemBlock;
+		Function *m_pFuncAddMemBlock;
+		Function *m_pFuncSplitMemBlock;
+		Function *m_pFuncRemovemMemBlock;
 
 		// Globals we need access to (makes sense to put them here?)
 	    GlobalVariable *m_pFreeMemBlockHead;
@@ -71,6 +72,9 @@ class FunctionManager
 
 		void declareSplitMemBlock();
 		void defineSplitMemBlock();
+
+		void declareRemoveMemBlock();
+		void defineRemoveMemBlock();
 
 };
 
