@@ -325,7 +325,7 @@ void FunctionManager::declareSplitMemBlock()
 				  /*Name=*/"llvm_split_memory_block", m_pMod);
 		m_pFuncSplitMemBlock->setCallingConv(CallingConv::C);
 	}
-	AttributeSet m_pFuncSplitMemBlock_PAL;
+	AttributeSet func_split_PAL;
 	{
 		SmallVector<AttributeSet, 4> Attrs;
 		AttributeSet PAS;
@@ -337,9 +337,9 @@ void FunctionManager::declareSplitMemBlock()
 		}
 
 		Attrs.push_back(PAS);
-		m_pFuncSplitMemBlock_PAL = AttributeSet::get(m_pMod->getContext(), Attrs);
+		func_split_PAL = AttributeSet::get(m_pMod->getContext(), Attrs);
 	}
-	m_pFuncSplitMemBlock->setAttributes(m_pFuncSplitMemBlock_PAL);
+	m_pFuncSplitMemBlock->setAttributes(func_split_PAL);
 }
 
 void FunctionManager::defineSplitMemBlock()
@@ -436,7 +436,7 @@ void FunctionManager::declareRemoveMemBlock()
 		/*Name=*/"llvm_remove_memory_block", m_pMod);
 		m_pFuncRemovemMemBlock->setCallingConv(CallingConv::C);
 	}
-	AttributeSet m_pFuncRemovemMemBlock_PAL;
+	AttributeSet func_fl_remove_PAL;
 	{
 		SmallVector<AttributeSet, 4> Attrs;
 		AttributeSet PAS;
@@ -448,10 +448,10 @@ void FunctionManager::declareRemoveMemBlock()
 		}
 
 		Attrs.push_back(PAS);
-		m_pFuncRemovemMemBlock_PAL = AttributeSet::get(m_pMod->getContext(), Attrs);
+		func_fl_remove_PAL = AttributeSet::get(m_pMod->getContext(), Attrs);
 
 	}
-	m_pFuncRemovemMemBlock->setAttributes(m_pFuncRemovemMemBlock_PAL);
+	m_pFuncRemovemMemBlock->setAttributes(func_fl_remove_PAL);
 }
 
 void FunctionManager::defineRemoveMemBlock()
