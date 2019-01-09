@@ -941,6 +941,23 @@ void FunctionManager::defineMalloc()
 	ReturnInst::Create(m_pMod->getContext(), ptr_315, label_211);
 }
 
+CallInst* FunctionManager::insertMallocCall(Instruction *inst, Value *sizeToAlloc)
+{
+	// allocate 4 bytes of memory for now (hardcode)
+	// eventually we need to use the passed in value
+	ConstantInt* const_int64_28 = ConstantInt::get(m_pMod->getContext(),
+			APInt(64, StringRef("4"), 10));
+
+	CallInst* mallocCallInst = CallInst::Create(m_pFuncMalloc, const_int64_28, "", inst);
+	mallocCallInst->setCallingConv(CallingConv::C);
+	mallocCallInst->setTailCall(false);
+	AttributeSet malloc_PAL;
+	mallocCallInst->setAttributes(malloc_PAL);
+
+	return mallocCallInst;
+
+}
+
 /***Function summary - FunctionManager::insertMmapCall***
 Takes in a module and an instruction, and inserts a call to mmap()
 before the given instruction.

@@ -44,7 +44,8 @@ class FunctionManager
 		MallocArgs extractMallocArgs(CallInst *callInst);
 
 		// custom malloc functions
-		CallInst* insertAddMemoryBlockCall(Instruction *inst, Value *param);
+		CallInst* insertAddMemoryBlockCall(Instruction *inst, Value *param); // for testing
+		CallInst* insertMallocCall(Instruction *inst, Value *sizeToAlloc);
 
 		void testFunction();
 

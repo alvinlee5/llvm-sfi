@@ -48,6 +48,25 @@ bool SandboxWritesPass::runOnModule(Module &M)
 	BitCastInst* bitCast;
 	for (Module::iterator F = M.begin(), ME = M.end(); F != ME; ++F)
 	{
+		Function *func = dyn_cast<Function>(F);
+		StringRef funcName1("llvm_add_memory_block");
+		StringRef funcName2("llvm_split_memory_block");
+		StringRef funcName3("llvm_remove_memory_block");
+		StringRef funcName4("llvm_malloc");
+
+		if ((func->getName()).equals(funcName1) ||
+				(func->getName()).equals(funcName2) ||
+				(func->getName()).equals(funcName3) ||
+				(func->getName()).equals(funcName4))
+		{
+			// We don't want to instrument on our own inserted functions.
+			// We don't want to instrument on system calls either. Even though
+			// the function system calls will be looped through here (if used)
+			// it seems that LLVM doesn't have the BB's or instructions to loop
+			// through. This makes sense since we only compile our own source code,
+			// and not source code which implements system calls like printf.
+			continue;
+		}
 		for (Function::iterator BB = F->begin(), FE = F->end(); BB != FE; ++BB)
 		{
 			for (BasicBlock::iterator Inst = BB->begin(), BBE = BB->end();
@@ -57,10 +76,13 @@ bool SandboxWritesPass::runOnModule(Module &M)
 				// the memory address of the allocated memory
 				if (isa<AllocaInst>(Inst))
 				{
-/*					AllocaInst* inst = dyn_cast<AllocaInst>(Inst);
+					AllocaInst* inst = dyn_cast<AllocaInst>(Inst);
 
-					CallInst *ptr_test = funcManager.insertMmapCall(
-							dyn_cast<Instruction>(Inst));
+					//CallInst *ptr_test = funcManager.insertMmapCall(
+					//		dyn_cast<Instruction>(Inst));
+					errs()<<"Inserted Malloc\n";
+					CallInst *ptr_test = funcManager.insertMallocCall(dyn_cast<Instruction>(Inst),
+							NULL);
 
 					// Test for mmap:
 					// 1. Have pointer variable point to new mmaped memory
@@ -76,7 +98,7 @@ bool SandboxWritesPass::runOnModule(Module &M)
 					Inst++;
 		    		StoreInst *store_inst = new StoreInst(ptr_test, inst,
 		    				dyn_cast<Instruction>(Inst));
-		    		Inst--;*/
+		    		Inst--;
 
 				}
 
