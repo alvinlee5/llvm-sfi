@@ -26,6 +26,8 @@ namespace {
     {
     	m_pFreeMemBlockHead = NULL;
     	m_pHaveAllocedMem = NULL;
+    	m_pPtrToHeap = NULL;
+    	m_pSizeOfHeap = NULL;
     }
     virtual bool runOnModule(Module &M);
     void SandBoxWrites(Module *pMod, StoreInst* inst, Function::iterator *BB,
@@ -35,6 +37,8 @@ namespace {
     // Make inserted globals members for now for easy access
     GlobalVariable *m_pFreeMemBlockHead;
     GlobalVariable *m_pHaveAllocedMem;
+    GlobalVariable *m_pPtrToHeap;
+    GlobalVariable *m_pSizeOfHeap;
   };
 }
 
@@ -42,7 +46,8 @@ bool SandboxWritesPass::runOnModule(Module &M)
 {
 	TypeManager typeManager (&M);
 	InsertGlobalVars(&M, &typeManager);
-	FunctionManager funcManager(&M, &typeManager, m_pFreeMemBlockHead, m_pHaveAllocedMem);
+	FunctionManager funcManager(&M, &typeManager, m_pFreeMemBlockHead, m_pHaveAllocedMem,
+			m_pPtrToHeap);
 
 	CallInst *mallocCall;
 	BitCastInst* bitCast;
@@ -274,6 +279,30 @@ void SandboxWritesPass::InsertGlobalVars(Module *pMod, TypeManager* typeManager)
 	ConstantInt* const_int32_val0 = ConstantInt::get(pMod->getContext(),
 			APInt(32, StringRef("0"), 10));
 	m_pHaveAllocedMem->setInitializer(const_int32_val0);
+
+	/* Size of sfi heap*/
+	m_pSizeOfHeap = new GlobalVariable(/*Module=*/*pMod,
+	/*Type=*/IntegerType::get(pMod->getContext(), 64),
+	/*isConstant=*/false,
+	/*Linkage=*/GlobalValue::ExternalLinkage,
+	/*Initializer=*/0, // has initializer, specified below
+	/*Name=*/"sizeOfHeap");
+	m_pSizeOfHeap->setAlignment(8);
+	ConstantInt* const_int64_22 = ConstantInt::get(pMod->getContext(),
+		 APInt(64, StringRef("20480"), 10));
+	m_pSizeOfHeap->setInitializer(const_int64_22);
+
+	/* Pointer to beginning of sfi heap */
+	PointerType* voidPtrType = PointerType::get(IntegerType::get(pMod->getContext(), 8), 0);
+	m_pPtrToHeap = new GlobalVariable(/*Module=*/*pMod,
+	/*Type=*/voidPtrType,
+	/*isConstant=*/false,
+	/*Linkage=*/GlobalValue::ExternalLinkage,
+	/*Initializer=*/0, // has initializer, specified below
+	/*Name=*/"ptrToHeap");
+	m_pPtrToHeap->setAlignment(8);
+	ConstantPointerNull* nullForVoidPtr = ConstantPointerNull::get(voidPtrType);
+	m_pPtrToHeap->setInitializer(nullForVoidPtr);
 }
 
 char SandboxWritesPass::ID = 0;
