@@ -30,7 +30,8 @@ class FunctionManager
 
 	public:
 		FunctionManager(Module *pMod, TypeManager *pTypeManager,
-				GlobalVariable *freeMemBlockHead, GlobalVariable *haveAllocedMem);
+				GlobalVariable *freeMemBlockHead, GlobalVariable *haveAllocedMem,
+				GlobalVariable *ptrToHeap);
 
 		// mmap related functions
 		Instruction* replaceMallocWithMmap(Instruction *inst);
@@ -64,6 +65,7 @@ class FunctionManager
 		// Globals we need access to (makes sense to put them here?)
 	    GlobalVariable *m_pFreeMemBlockHead;
 	    GlobalVariable *m_pHaveAllocedMem;
+	    GlobalVariable *m_pPtrToHeap;
 
 	// helpers
 	private:

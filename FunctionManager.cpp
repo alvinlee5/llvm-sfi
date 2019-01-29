@@ -13,9 +13,10 @@
 using namespace llvm;
 
 FunctionManager::FunctionManager(Module* pMod, TypeManager *pTypeManager,
-		GlobalVariable *freeMemBlockHead, GlobalVariable *haveAllocedMem)
+		GlobalVariable *freeMemBlockHead, GlobalVariable *haveAllocedMem,
+		GlobalVariable *ptrToHeap)
 : m_pMod(pMod), m_pTypeManager(pTypeManager), m_pFreeMemBlockHead(freeMemBlockHead),
-  m_pHaveAllocedMem(haveAllocedMem)
+  m_pHaveAllocedMem(haveAllocedMem), m_pPtrToHeap(ptrToHeap)
 {
 	declareMmap();
 	declareAddMemoryBlock();
@@ -819,6 +820,15 @@ void FunctionManager::defineMalloc()
 	CastInst* ptr_265 = new BitCastInst(ptr_264, m_pTypeManager->GetFreeMemBlockPtTy(), "", label_202);
 	StoreInst* void_266 = new StoreInst(ptr_265, ptr_ptr, false, label_202);
 	void_266->setAlignment(8);
+
+	// This "block" was added after the initial implementation
+	// Have gvar point to beginning of llvm_heap
+	LoadInst* ptrFromMmap = new LoadInst(ptr_ptr, "", false, label_202);
+	ptrFromMmap->setAlignment(8);
+	CastInst* castPtrToVoidType = new BitCastInst(ptrFromMmap, voidPtrType, "", label_202);
+	StoreInst* storeHeapAddrToGvar = new StoreInst(castPtrToVoidType, m_pPtrToHeap, false, label_202);
+	storeHeapAddrToGvar->setAlignment(8);
+
 	LoadInst* ptr_267 = new LoadInst(ptr_ptr, "", false, label_202);
 	ptr_267->setAlignment(8);
 	ICmpInst* int1_268 = new ICmpInst(*label_202, ICmpInst::ICMP_NE, ptr_267, m_pTypeManager->GetFreeMemBlockNull(), "");
