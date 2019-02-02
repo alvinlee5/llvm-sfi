@@ -39,7 +39,7 @@ FunctionManager::FunctionManager(Module* pMod, TypeManager *pTypeManager,
 	/*isConstant=*/true,
 	/*Linkage=*/GlobalValue::PrivateLinkage,
 	/*Initializer=*/0, // has initializer, specified below
-	/*Name=*/".str");
+	/*Name=*/"llvm_.str");
 	m_pPrintfStrPtr->setAlignment(1);
 	Constant *printPtrStr = ConstantDataArray::getString(m_pMod->getContext(),
 			"Pointer: %p\x0A", true);
@@ -51,7 +51,7 @@ FunctionManager::FunctionManager(Module* pMod, TypeManager *pTypeManager,
 	/*isConstant=*/true,
 	/*Linkage=*/GlobalValue::PrivateLinkage,
 	/*Initializer=*/0, // has initializer, specified below
-	/*Name=*/".str.1");
+	/*Name=*/"llvm_.str.1");
 	m_pPrintfStrInt->setAlignment(1);
 	Constant *printIntStr = ConstantDataArray::getString(m_pMod->getContext(),
 			"Value: %d\x0A", true);
@@ -1056,7 +1056,6 @@ CallInst* FunctionManager::insertPrintfCall(Value *val, bool printPtr, /*InsertB
 	}
 	else
 	{
-		printf("Call\n");
 		// print int variable
 		std::vector<Constant*> ptrIndices;
 		ptrIndices.push_back(const_val_0);

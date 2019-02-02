@@ -269,7 +269,7 @@ void SandboxWritesPass::InsertGlobalVars(Module *pMod, TypeManager* typeManager)
 			 /*isConstant=*/false,
 			 /*Linkage=*/GlobalValue::ExternalLinkage,
 			 /*Initializer=*/0, // has initializer, specified below
-			 /*Name=*/"head");
+			 /*Name=*/"llvm_head");
 	m_pFreeMemBlockHead->setAlignment(8);
 	m_pFreeMemBlockHead->setInitializer(typeManager->GetFreeMemBlockNull());
 
@@ -279,7 +279,7 @@ void SandboxWritesPass::InsertGlobalVars(Module *pMod, TypeManager* typeManager)
 			 /*isConstant=*/false,
 			 /*Linkage=*/GlobalValue::ExternalLinkage,
 			 /*Initializer=*/0, // has initializer, specified below
-			 /*Name=*/"haveAllocedMem");
+			 /*Name=*/"llvm_haveAllocedMem");
 	m_pHaveAllocedMem->setAlignment(4);
 	ConstantInt* const_int32_val0 = ConstantInt::get(pMod->getContext(),
 			APInt(32, StringRef("0"), 10));
@@ -291,7 +291,7 @@ void SandboxWritesPass::InsertGlobalVars(Module *pMod, TypeManager* typeManager)
 	/*isConstant=*/false,
 	/*Linkage=*/GlobalValue::ExternalLinkage,
 	/*Initializer=*/0, // has initializer, specified below
-	/*Name=*/"sizeOfHeap");
+	/*Name=*/"llvm_sizeOfHeap");
 	m_pSizeOfHeap->setAlignment(8);
 	ConstantInt* const_int64_22 = ConstantInt::get(pMod->getContext(),
 		 APInt(64, StringRef("20480"), 10));
@@ -304,7 +304,7 @@ void SandboxWritesPass::InsertGlobalVars(Module *pMod, TypeManager* typeManager)
 	/*isConstant=*/false,
 	/*Linkage=*/GlobalValue::ExternalLinkage,
 	/*Initializer=*/0, // has initializer, specified below
-	/*Name=*/"ptrToHeap");
+	/*Name=*/"llvm_ptrToHeap");
 	m_pPtrToHeap->setAlignment(8);
 	ConstantPointerNull* nullForVoidPtr = ConstantPointerNull::get(voidPtrType);
 	m_pPtrToHeap->setInitializer(nullForVoidPtr);
