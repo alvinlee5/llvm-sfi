@@ -50,7 +50,6 @@ bool SandboxWritesPass::runOnModule(Module &M)
 			m_pPtrToHeap);
 
 	CallInst *mallocCall;
-	BitCastInst* bitCast;
 	for (Module::iterator F = M.begin(), ME = M.end(); F != ME; ++F)
 	{
 		Function *func = dyn_cast<Function>(F);
@@ -81,6 +80,7 @@ bool SandboxWritesPass::runOnModule(Module &M)
 				// the memory address of the allocated memory
 				if (isa<AllocaInst>(Inst))
 				{
+					// Test for mmap / malloc:
 					AllocaInst* inst = dyn_cast<AllocaInst>(Inst);
 
 					//CallInst *ptr_test = funcManager.insertMmapCall(
@@ -89,7 +89,6 @@ bool SandboxWritesPass::runOnModule(Module &M)
 					CallInst *ptr_test = funcManager.insertMallocCall(dyn_cast<Instruction>(Inst),
 							NULL);
 
-					// Test for mmap:
 					// 1. Have pointer variable point to new mmaped memory
 					// 2. Assign a value to the memory
 					// 3. Print from the actual source file
@@ -100,10 +99,16 @@ bool SandboxWritesPass::runOnModule(Module &M)
 					StoreInst* void_24 = new StoreInst(const_int32_99, ptr_test, false, inst);
 					void_24->setAlignment(4);
 
-					Inst++;
 		    		StoreInst *store_inst = new StoreInst(ptr_test, inst,
-		    				dyn_cast<Instruction>(Inst));
-		    		Inst--;
+		    				dyn_cast<Instruction>(Inst)->getNextNode());
+		    		LoadInst *loadInst = new LoadInst(m_pPtrToHeap, "", store_inst->getNextNode());
+		    		CallInst *call2 = funcManager.insertPrintfCall(loadInst, true, loadInst->getNextNode());
+		    		LoadInst *loadInst2 = new LoadInst(inst, "", call2->getNextNode());
+		    		CallInst *call3 = funcManager.insertPrintfCall(loadInst2, true, loadInst2->getNextNode());
+		    		CastInst *cast = new BitCastInst(loadInst2, PointerType::get(IntegerType::get(M.getContext(), 32), 0), "",
+		    				call3->getNextNode());
+		    		LoadInst *loadInst3 = new LoadInst(cast, "", cast->getNextNode());
+		    		CallInst *call4 = funcManager.insertPrintfCall(loadInst3, false, loadInst3->getNextNode());
 
 				}
 
@@ -122,6 +127,7 @@ bool SandboxWritesPass::runOnModule(Module &M)
 					CallInst *callInst = dyn_cast<CallInst>(Inst);
 					if (funcManager.isMallocCall(callInst))
 					{
+/*
 						errs() << "Malloc\n";
 						mallocCall = callInst;
 						FunctionManager::MallocArgs args = funcManager.
@@ -129,12 +135,11 @@ bool SandboxWritesPass::runOnModule(Module &M)
 						Instruction* newInst = funcManager.replaceMallocWithMmap(callInst);
 						BasicBlock::iterator BI(newInst);
 						Inst = BI;
+*/
 					}
 					if (funcManager.isFreeCall(callInst))
 					{
-						errs() << "Free\n";
-						bool test = (bitCast == callInst->getOperand(0));
-						errs() << test;
+
 					}
 					if (funcManager.isMmapCall(callInst))
 					{

@@ -48,11 +48,14 @@ class FunctionManager
 		CallInst* insertAddMemoryBlockCall(Instruction *inst, Value *param); // for testing
 		CallInst* insertMallocCall(Instruction *inst, Value *sizeToAlloc);
 
-		void testFunction();
+		CallInst* insertPrintfCall(Value *val, bool printPtr, /*InsertBefore*/ Instruction *inst);
+
+
 
 	//members
 	private:
 		Function *m_pFuncMmap;
+		Function *m_pFuncPrintf;
 		Module *m_pMod;
 		TypeManager* m_pTypeManager;
 
@@ -67,9 +70,15 @@ class FunctionManager
 	    GlobalVariable *m_pHaveAllocedMem;
 	    GlobalVariable *m_pPtrToHeap;
 
+	    // Only needed in FunctionManager, so not defined in
+	    // SandboxWrites
+	    GlobalVariable *m_pPrintfStrPtr;
+	    GlobalVariable *m_pPrintfStrInt;
+
 	// helpers
 	private:
 		void declareMmap();
+		void declarePrintf();
 
 		void declareAddMemoryBlock();
 		void defineAddMemoryBlock();

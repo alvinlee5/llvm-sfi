@@ -9,7 +9,6 @@ TypeManager::TypeManager(Module *mod)
 {
 	m_pMod = mod;
 	InitFreeMemBlockTy();
-
 }
 
 void TypeManager::InitFreeMemBlockTy()
