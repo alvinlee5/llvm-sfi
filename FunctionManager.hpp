@@ -63,7 +63,9 @@ class FunctionManager
 		Function *m_pFuncAddMemBlock;
 		Function *m_pFuncSplitMemBlock;
 		Function *m_pFuncRemovemMemBlock;
-		Function* m_pFuncMalloc;
+		Function *m_pFuncMalloc;
+		Function *m_pFuncScanMerge;
+		Function *m_pFuncFree;
 
 		// Globals we need access to (makes sense to put them here?)
 	    GlobalVariable *m_pFreeMemBlockHead;
@@ -92,6 +94,11 @@ class FunctionManager
 		void declareMalloc();
 		void defineMalloc();
 
+		void declareScanMerge();
+		void defineScanMerge();
+
+		void declareFree();
+		void defineFree();
 };
 
 

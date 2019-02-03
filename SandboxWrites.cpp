@@ -57,11 +57,15 @@ bool SandboxWritesPass::runOnModule(Module &M)
 		StringRef funcName2("llvm_split_memory_block");
 		StringRef funcName3("llvm_remove_memory_block");
 		StringRef funcName4("llvm_malloc");
+		StringRef funcName5("llvm_scan_merge");
+		StringRef funcName6("llvm_free");
 
 		if ((func->getName()).equals(funcName1) ||
 				(func->getName()).equals(funcName2) ||
 				(func->getName()).equals(funcName3) ||
-				(func->getName()).equals(funcName4))
+				(func->getName()).equals(funcName4) ||
+				(func->getName()).equals(funcName5) ||
+				(func->getName()).equals(funcName6))
 		{
 			// We don't want to instrument on our own inserted functions.
 			// We don't want to instrument on system calls either. Even though
