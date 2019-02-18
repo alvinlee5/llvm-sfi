@@ -1506,6 +1506,22 @@ Instruction* FunctionManager::replaceMallocWithMmap(Instruction *inst/*, MallocA
 	return mmapCallInst;
 }
 
+CallInst* FunctionManager::replaceMallocWithMalloc(Instruction *inst, Value *sizeToAlloc)
+{
+	// allocate 4 bytes of memory for now (hardcode)
+	// eventually we need to use the passed in value
+	ConstantInt* const_int64_28 = ConstantInt::get(m_pMod->getContext(),
+			APInt(64, StringRef("4"), 10));
+
+	CallInst* mallocCallInst = CallInst::Create(m_pFuncMalloc, const_int64_28, ""/*, inst*/);
+	mallocCallInst->setCallingConv(CallingConv::C);
+	mallocCallInst->setTailCall(false);
+	AttributeSet malloc_PAL;
+	mallocCallInst->setAttributes(malloc_PAL);
+	ReplaceInstWithInst(inst, mallocCallInst);
+	return mallocCallInst;
+}
+
 Function* FunctionManager::getMmapFunction()
 {
 	return m_pFuncMmap;

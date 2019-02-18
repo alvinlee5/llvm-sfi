@@ -84,6 +84,7 @@ bool SandboxWritesPass::runOnModule(Module &M)
 				// the memory address of the allocated memory
 				if (isa<AllocaInst>(Inst))
 				{
+/*
 					// Test for mmap / malloc:
 					AllocaInst* inst = dyn_cast<AllocaInst>(Inst);
 
@@ -113,7 +114,7 @@ bool SandboxWritesPass::runOnModule(Module &M)
 		    				call3->getNextNode());
 		    		LoadInst *loadInst3 = new LoadInst(cast, "", cast->getNextNode());
 		    		CallInst *call4 = funcManager.insertPrintfCall(loadInst3, false, loadInst3->getNextNode());
-
+*/
 				}
 
 				if (isa<StoreInst>(Inst))
@@ -131,15 +132,15 @@ bool SandboxWritesPass::runOnModule(Module &M)
 					CallInst *callInst = dyn_cast<CallInst>(Inst);
 					if (funcManager.isMallocCall(callInst))
 					{
-/*
+
 						errs() << "Malloc\n";
 						mallocCall = callInst;
 						FunctionManager::MallocArgs args = funcManager.
 								extractMallocArgs(callInst);
-						Instruction* newInst = funcManager.replaceMallocWithMmap(callInst);
+						Instruction* newInst = funcManager.replaceMallocWithMalloc(callInst, NULL);
 						BasicBlock::iterator BI(newInst);
 						Inst = BI;
-*/
+
 					}
 					if (funcManager.isFreeCall(callInst))
 					{
@@ -166,8 +167,6 @@ bool SandboxWritesPass::runOnModule(Module &M)
 								false, ptr_127->getNextNode());
 						LoadInst *load = new LoadInst(secBlock, "", false, last->getNextNode());
 						funcManager.insertAddMemoryBlockCall(load->getNextNode(), load);*/
-
-
 					}
 				}
 			}

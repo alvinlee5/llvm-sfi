@@ -47,6 +47,7 @@ class FunctionManager
 		// custom malloc functions
 		CallInst* insertAddMemoryBlockCall(Instruction *inst, Value *param); // for testing
 		CallInst* insertMallocCall(Instruction *inst, Value *sizeToAlloc);
+		CallInst* replaceMallocWithMalloc(Instruction *inst, Value *sizeToAlloc);
 
 		CallInst* insertPrintfCall(Value *val, bool printPtr, /*InsertBefore*/ Instruction *inst);
 
