@@ -1641,3 +1641,15 @@ FunctionManager::MallocArgs FunctionManager::extractMallocArgs(CallInst *callIns
 	}
 	return args;
 }
+
+Value* FunctionManager::extractFreeArgs(CallInst *callInst)
+{
+	CallSite CS(callInst);
+	Value *args;
+	for (auto arg = CS.arg_begin(); arg != CS.arg_end(); arg++)
+	{
+		printf("Free args\n");
+		args = dyn_cast<Value>(arg);
+	}
+	return args;
+}

@@ -137,14 +137,17 @@ bool SandboxWritesPass::runOnModule(Module &M)
 						mallocCall = callInst;
 						FunctionManager::MallocArgs args = funcManager.
 								extractMallocArgs(callInst);
-						Instruction* newInst = funcManager.replaceMallocWithMalloc(callInst, NULL);
-						BasicBlock::iterator BI(newInst);
-						Inst = BI;
+						errs()<<*(args.constArg)<<"\n";
+						//Instruction* newInst = funcManager.replaceMallocWithMalloc(callInst, NULL);
+						//BasicBlock::iterator BI(newInst);
+						//Inst = BI;
 
 					}
 					if (funcManager.isFreeCall(callInst))
 					{
-
+						errs() << "Free\n";
+						Value *args = funcManager.extractFreeArgs(callInst);
+						errs()<<*args<<"\n";
 					}
 					if (funcManager.isMmapCall(callInst))
 					{

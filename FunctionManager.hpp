@@ -43,6 +43,7 @@ class FunctionManager
 		bool isFreeCall(CallInst *callInst);
 		bool isMmapCall(CallInst *callInst); // for debugging
 		MallocArgs extractMallocArgs(CallInst *callInst);
+		Value* extractFreeArgs(CallInst *callInst);
 
 		// custom malloc functions
 		CallInst* insertAddMemoryBlockCall(Instruction *inst, Value *param); // for testing
