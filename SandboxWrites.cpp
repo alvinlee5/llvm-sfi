@@ -135,9 +135,9 @@ bool SandboxWritesPass::runOnModule(Module &M)
 
 						errs() << "Malloc\n";
 						mallocCall = callInst;
-						FunctionManager::MallocArgs args = funcManager.
+						Value *args = funcManager.
 								extractMallocArgs(callInst);
-						errs()<<*(args.constArg)<<"\n";
+						errs()<<*args<<"\n";
 						//Instruction* newInst = funcManager.replaceMallocWithMalloc(callInst, NULL);
 						//BasicBlock::iterator BI(newInst);
 						//Inst = BI;
