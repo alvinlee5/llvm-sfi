@@ -48,6 +48,7 @@ class FunctionManager
 		CallInst* insertAddMemoryBlockCall(Instruction *inst, Value *param); // for testing
 		CallInst* insertMallocCall(Instruction *inst, Value *sizeToAlloc);
 		CallInst* replaceMallocWithMalloc(Instruction *inst, Value *sizeToAlloc);
+		CallInst* replaceFreeWithFree(Instruction *inst, Value *ptrToMemoryToFree);
 
 		CallInst* insertPrintfCall(Value *val, bool printPtr, /*InsertBefore*/ Instruction *inst);
 

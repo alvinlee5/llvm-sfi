@@ -1522,6 +1522,17 @@ CallInst* FunctionManager::replaceMallocWithMalloc(Instruction *inst, Value *siz
 	return mallocCallInst;
 }
 
+CallInst* FunctionManager::replaceFreeWithFree(Instruction *inst, Value *ptrToMemoryToFree)
+{
+	  CallInst* freeCallInst = CallInst::Create(m_pFuncFree, ptrToMemoryToFree, "");
+	  freeCallInst->setCallingConv(CallingConv::C);
+	  freeCallInst->setTailCall(false);
+	  AttributeSet void_419_PAL;
+	  freeCallInst->setAttributes(void_419_PAL);
+	  ReplaceInstWithInst(inst, freeCallInst);
+	  return freeCallInst;
+}
+
 Function* FunctionManager::getMmapFunction()
 {
 	return m_pFuncMmap;
