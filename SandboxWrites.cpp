@@ -49,7 +49,6 @@ bool SandboxWritesPass::runOnModule(Module &M)
 	FunctionManager funcManager(&M, &typeManager, m_pFreeMemBlockHead, m_pHaveAllocedMem,
 			m_pPtrToHeap);
 
-	CallInst *mallocCall;
 	for (Module::iterator F = M.begin(), ME = M.end(); F != ME; ++F)
 	{
 		Function *func = dyn_cast<Function>(F);
@@ -132,22 +131,21 @@ bool SandboxWritesPass::runOnModule(Module &M)
 					CallInst *callInst = dyn_cast<CallInst>(Inst);
 					if (funcManager.isMallocCall(callInst))
 					{
-
 						errs() << "Malloc\n";
-						mallocCall = callInst;
 						Value *args = funcManager.
 								extractMallocArgs(callInst);
-						errs()<<*args<<"\n";
-						//Instruction* newInst = funcManager.replaceMallocWithMalloc(callInst, NULL);
-						//BasicBlock::iterator BI(newInst);
-						//Inst = BI;
+						Instruction* newInst = funcManager.replaceMallocWithMalloc(callInst, args);
+						BasicBlock::iterator BI(newInst);
+						Inst = BI;
 
 					}
 					if (funcManager.isFreeCall(callInst))
 					{
 						errs() << "Free\n";
 						Value *args = funcManager.extractFreeArgs(callInst);
-						errs()<<*args<<"\n";
+						Instruction* newInst = funcManager.replaceFreeWithFree(callInst, args);
+						BasicBlock::iterator BI(newInst);
+						Inst = BI;
 					}
 					if (funcManager.isMmapCall(callInst))
 					{
