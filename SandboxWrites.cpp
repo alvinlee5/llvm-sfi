@@ -122,16 +122,14 @@ bool SandboxWritesPass::runOnModule(Module &M)
 					if (true/*count == 1*/)
 					{
 						StoreInst *inst = dyn_cast<StoreInst>(Inst);
-											LoadInst *loadPtrToHeap;
-											LoadInst *loadUpperBound;
-											GetHeapRegion(&M, &loadPtrToHeap, &loadUpperBound, inst);
-											SandBoxWrites(&M, inst, &BB, loadPtrToHeap, loadUpperBound);
-											// Break since current iterator is invalidated after
-											// we split a basic block.
-											break;
-
+						LoadInst *loadPtrToHeap;
+						LoadInst *loadUpperBound;
+						GetHeapRegion(&M, &loadPtrToHeap, &loadUpperBound, inst);
+						SandBoxWrites(&M, inst, &BB, loadPtrToHeap, loadUpperBound);
+						// Break since current iterator is invalidated after
+						// we split a basic block.
+						break;
 					}
-
 					count++;
 				}
 
@@ -217,7 +215,6 @@ void SandboxWritesPass::GetHeapRegion(Module *pMod, LoadInst** lowerBound, LoadI
 
 	LoadInst *sizeOfHeap = new LoadInst(m_pSizeOfHeap, "", false, inst);
 	sizeOfHeap->setAlignment(8);
-
 
 	// zeroExt arg will be ptrToHeapToInt in Android
 	BinaryOperator* addInst = BinaryOperator::Create(Instruction::Add,
