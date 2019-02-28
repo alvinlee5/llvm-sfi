@@ -858,8 +858,8 @@ void FunctionManager::defineMalloc()
 
 	// Block  (label_202)
 	// Test for mallocing at a specific starting address (0x30000) to test if the
-	// insertion/replacement actually works (print the address to see if its 0x3000c)
-	// 0x3000c because llvm_malloc returns the address after the free.mem.block struct
+	// insertion/replacement actually works (print the address to see if its 0x30018)
+	// 0x30018 because llvm_malloc returns the address after the free.mem.block struct
     ConstantInt* addrToMapMem = ConstantInt::get(m_pMod->getContext(), APInt(64, StringRef("196608"), 10));
 	Constant* ptrToMmapAddr = ConstantExpr::getCast(Instruction::IntToPtr, addrToMapMem, voidPtrType);
 
