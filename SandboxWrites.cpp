@@ -33,6 +33,7 @@ namespace {
     void SandBoxWrites(Module *pMod, StoreInst* inst, Function::iterator *BB,
     		Value* upperBound, Value* lowerBound);
     void InsertGlobalVars(Module *pMod, TypeManager* typeManager);
+    void GetHeapRegion(Module *pMod, LoadInst** lowerBound, LoadInst** upperBound, StoreInst* inst);
 
     // Make inserted globals members for now for easy access
     GlobalVariable *m_pFreeMemBlockHead;
@@ -119,31 +120,18 @@ bool SandboxWritesPass::runOnModule(Module &M)
 				if (isa<StoreInst>(Inst))
 				{
 					StoreInst *inst = dyn_cast<StoreInst>(Inst);
-					CastInst * ptrToHeapToInt = new PtrToIntInst(m_pPtrToHeap,
-							IntegerType::get(M.getContext(), 32), "", inst);
+					LoadInst *loadPtrToHeap;
+					LoadInst *loadUpperBound;
+					GetHeapRegion(&M, &loadPtrToHeap, &loadUpperBound, inst);
 
-					// remove this line in Android, since ARMv7 is 32-bits
-					CastInst *zeroExt = new ZExtInst(ptrToHeapToInt,
-							IntegerType::get(M.getContext(), 64), "", inst);
+					//funcManager.insertPrintfCall(m_pPtrToHeap, true, inst);
+					//funcManager.insertPrintfCall(upperBound, true, inst);
 
-					LoadInst *sizeOfHeap = new LoadInst(m_pSizeOfHeap, "", false, inst);
-					sizeOfHeap->setAlignment(8);
-
-					// zeroExt arg will be ptrToHeapToInt in Android
-					BinaryOperator* addInst = BinaryOperator::Create(Instruction::Add,
-							zeroExt, sizeOfHeap, "", inst);
-
-					CastInst* upperBound = new IntToPtrInst(addInst,
-							PointerType::get(IntegerType::get(M.getContext(), 8), 0), "", inst);
-
-					funcManager.insertPrintfCall(m_pPtrToHeap, true, inst);
-					funcManager.insertPrintfCall(upperBound, true, inst);
-
-					//SandBoxWrites(&M, inst, &BB, m_pPtrToHeap, upperBound);
+					SandBoxWrites(&M, inst, &BB, loadPtrToHeap, loadUpperBound);
 
 					// Break since current iterator is invalidated after
 					// we split a basic block.
-					//break;
+					break;
 				}
 
 				if (isa<CallInst>(Inst))
@@ -196,6 +184,61 @@ bool SandboxWritesPass::runOnModule(Module &M)
 	return false;
 }
 
+/*** Function summary - SandboxWritesPass::GetHeapRegion ***
+Takes in a module and a StoreInst and inserts instructions
+to compute the upper and lower address range of the SFI
+heap region and returns those values.
+
+@Inputs:
+- pMod: pointer to a Module
+- inst: pointer to a (store) instruction
+
+@brief
+An if statement is wrapped around the (store) instruction, and the
+write only takes place if it is within the upper/lower bound address
+range
+
+@Outputs:
+- lowerBound: lower bound of heap address range to be passed to SandBoxWrites()
+- upperBound: upper bound of heap address range to be passed to SandBoxWrites()
+*/
+void SandboxWritesPass::GetHeapRegion(Module *pMod, LoadInst** lowerBound, LoadInst** upperBound, StoreInst* inst)
+{
+	CastInst * ptrToHeapToInt = new PtrToIntInst(m_pPtrToHeap,
+			IntegerType::get(pMod->getContext(), 32), "", inst);
+
+	// remove this line in Android, since ARMv7 is 32-bits
+	CastInst *zeroExt = new ZExtInst(ptrToHeapToInt,
+			IntegerType::get(pMod->getContext(), 64), "", inst);
+
+	LoadInst *sizeOfHeap = new LoadInst(m_pSizeOfHeap, "", false, inst);
+	sizeOfHeap->setAlignment(8);
+
+	// zeroExt arg will be ptrToHeapToInt in Android
+	BinaryOperator* addInst = BinaryOperator::Create(Instruction::Add,
+			zeroExt, sizeOfHeap, "", inst);
+
+	CastInst* upBound = new IntToPtrInst(addInst,
+			PointerType::get(IntegerType::get(pMod->getContext(), 8), 0), "", inst);
+
+	AllocaInst* allocaForUpperBound = new AllocaInst(
+			PointerType::get(IntegerType::get(pMod->getContext(), 8), 0),
+			"", inst);
+
+	StoreInst *storeMmapInGvar = new StoreInst(upBound,
+			allocaForUpperBound, false, inst);
+	storeMmapInGvar->setAlignment(8);
+
+	LoadInst* loadPtrToHeap = new LoadInst(m_pPtrToHeap, "", false, inst);
+	loadPtrToHeap->setAlignment(8);
+
+	LoadInst* loadUpperBound = new LoadInst(allocaForUpperBound, "", false, inst);
+	loadUpperBound->setAlignment(8);
+
+	*lowerBound = loadPtrToHeap;
+	*upperBound = loadUpperBound;
+}
+
 /*** Function summary - SandboxWritesPass::SandBoxWrites ***
 Takes in a module and an instruction, and inserts a call to mmap()
 before the given instruction.
@@ -215,9 +258,6 @@ range
 @Outputs:
 - none
 */
-// TODO: Currently not using arguments upperBound and lowerBound
-// Eventually these will be used for the address bounds, and
-// not the dummy address range defined inside the function
 void SandboxWritesPass::SandBoxWrites(Module *pMod, StoreInst* inst, Function::iterator *BB,
 		Value* lowerBound, Value* upperBound)
 {
