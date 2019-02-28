@@ -49,7 +49,7 @@ bool SandboxWritesPass::runOnModule(Module &M)
 	InsertGlobalVars(&M, &typeManager);
 	FunctionManager funcManager(&M, &typeManager, m_pFreeMemBlockHead, m_pHaveAllocedMem,
 			m_pPtrToHeap);
-
+	int count = 0;
 	for (Module::iterator F = M.begin(), ME = M.end(); F != ME; ++F)
 	{
 		Function *func = dyn_cast<Function>(F);
@@ -119,19 +119,20 @@ bool SandboxWritesPass::runOnModule(Module &M)
 
 				if (isa<StoreInst>(Inst))
 				{
-					StoreInst *inst = dyn_cast<StoreInst>(Inst);
-					LoadInst *loadPtrToHeap;
-					LoadInst *loadUpperBound;
-					GetHeapRegion(&M, &loadPtrToHeap, &loadUpperBound, inst);
+					if (true/*count == 1*/)
+					{
+						StoreInst *inst = dyn_cast<StoreInst>(Inst);
+											LoadInst *loadPtrToHeap;
+											LoadInst *loadUpperBound;
+											GetHeapRegion(&M, &loadPtrToHeap, &loadUpperBound, inst);
+											SandBoxWrites(&M, inst, &BB, loadPtrToHeap, loadUpperBound);
+											// Break since current iterator is invalidated after
+											// we split a basic block.
+											break;
 
-					//funcManager.insertPrintfCall(m_pPtrToHeap, true, inst);
-					//funcManager.insertPrintfCall(upperBound, true, inst);
+					}
 
-					SandBoxWrites(&M, inst, &BB, loadPtrToHeap, loadUpperBound);
-
-					// Break since current iterator is invalidated after
-					// we split a basic block.
-					break;
+					count++;
 				}
 
 				if (isa<CallInst>(Inst))
@@ -204,7 +205,10 @@ range
 */
 void SandboxWritesPass::GetHeapRegion(Module *pMod, LoadInst** lowerBound, LoadInst** upperBound, StoreInst* inst)
 {
-	CastInst * ptrToHeapToInt = new PtrToIntInst(m_pPtrToHeap,
+	LoadInst *loadHeap = new LoadInst(m_pPtrToHeap, "", false, inst);
+	loadHeap->setAlignment(8);
+
+	CastInst * ptrToHeapToInt = new PtrToIntInst(loadHeap,
 			IntegerType::get(pMod->getContext(), 32), "", inst);
 
 	// remove this line in Android, since ARMv7 is 32-bits
@@ -213,6 +217,7 @@ void SandboxWritesPass::GetHeapRegion(Module *pMod, LoadInst** lowerBound, LoadI
 
 	LoadInst *sizeOfHeap = new LoadInst(m_pSizeOfHeap, "", false, inst);
 	sizeOfHeap->setAlignment(8);
+
 
 	// zeroExt arg will be ptrToHeapToInt in Android
 	BinaryOperator* addInst = BinaryOperator::Create(Instruction::Add,
