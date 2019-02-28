@@ -118,12 +118,32 @@ bool SandboxWritesPass::runOnModule(Module &M)
 
 				if (isa<StoreInst>(Inst))
 				{
-/*					StoreInst* inst = dyn_cast<StoreInst>(Inst);
-					SandBoxWrites(&M, inst, &BB, NULL, NULL);
+					StoreInst *inst = dyn_cast<StoreInst>(Inst);
+					CastInst * ptrToHeapToInt = new PtrToIntInst(m_pPtrToHeap,
+							IntegerType::get(M.getContext(), 32), "", inst);
+
+					// remove this line in Android, since ARMv7 is 32-bits
+					CastInst *zeroExt = new ZExtInst(ptrToHeapToInt,
+							IntegerType::get(M.getContext(), 64), "", inst);
+
+					LoadInst *sizeOfHeap = new LoadInst(m_pSizeOfHeap, "", false, inst);
+					sizeOfHeap->setAlignment(8);
+
+					// zeroExt arg will be ptrToHeapToInt in Android
+					BinaryOperator* addInst = BinaryOperator::Create(Instruction::Add,
+							zeroExt, sizeOfHeap, "", inst);
+
+					CastInst* upperBound = new IntToPtrInst(addInst,
+							PointerType::get(IntegerType::get(M.getContext(), 8), 0), "", inst);
+
+					funcManager.insertPrintfCall(m_pPtrToHeap, true, inst);
+					funcManager.insertPrintfCall(upperBound, true, inst);
+
+					//SandBoxWrites(&M, inst, &BB, m_pPtrToHeap, upperBound);
 
 					// Break since current iterator is invalidated after
 					// we split a basic block.
-					break;*/
+					//break;
 				}
 
 				if (isa<CallInst>(Inst))
@@ -199,42 +219,25 @@ range
 // Eventually these will be used for the address bounds, and
 // not the dummy address range defined inside the function
 void SandboxWritesPass::SandBoxWrites(Module *pMod, StoreInst* inst, Function::iterator *BB,
-		Value* upperBound, Value* lowerBound)
+		Value* lowerBound, Value* upperBound)
 {
 	// For now use void ptr type to store memory addresses
 	PointerType* voidPtrType = PointerType::get(IntegerType::get(pMod->getContext(), 8), 0);
-
-	// allocate memory to store upper and lower address bounds
-	AllocaInst* ptrToMemoryAddrTop = new AllocaInst(voidPtrType, nullptr,
-			8, "addrRangeTop", inst);
-	AllocaInst* ptrToMemoryAddrBot = new AllocaInst(voidPtrType, nullptr,
-			8, "addrRangeBot", inst);
 
 	// this is the address that will be compared (i.e. is it > and < some range)
 	CastInst *intAddrToVoid = new BitCastInst(inst->getOperand(1), voidPtrType,
 			"", inst);
 
-	// Store the upper and lower address bounds in the allocated memory
-	StoreInst *upperAddressRange = new StoreInst(intAddrToVoid, ptrToMemoryAddrTop,
-			inst);
-	StoreInst *lowerAddressRange = new StoreInst(intAddrToVoid, ptrToMemoryAddrBot,
-								inst);
-	// Comparison variables (TODO: currently dummy for testing purposes)
-	LoadInst *upperAddrBound = new LoadInst(/*upperAddressRange->getOperand(1),*/
-			ptrToMemoryAddrTop, "", false, inst);
-	LoadInst *lowerAddrBound = new LoadInst(/*lowerAddressRange->getOperand(1),*/
-			ptrToMemoryAddrBot, "", false, inst);
-
 	// First if statement (i.e. if address >= X)
 	ICmpInst *cmpInst = new ICmpInst(inst,
-			CmpInst::Predicate::ICMP_SGE, intAddrToVoid, lowerAddrBound, "");
+			CmpInst::Predicate::ICMP_SGE, intAddrToVoid, lowerBound, "");
 	TerminatorInst *outerIfTerm = SplitBlockAndInsertIfThen(cmpInst,
 			inst, false);
 	BasicBlock* outerIfBB = outerIfTerm->getParent();
 
 	// Second if statement (i.e. if address <= Y)
 	ICmpInst *cmpInst2 = new ICmpInst(outerIfTerm,
-			CmpInst::Predicate::ICMP_SLE, intAddrToVoid, upperAddrBound, "");
+			CmpInst::Predicate::ICMP_SLE, intAddrToVoid, upperBound, "");
 	BasicBlock* innerIfBB = outerIfBB->splitBasicBlock(outerIfTerm->getIterator());
 
 	// BB iterator is new pointing at the "Tail" of the original BasicBlock that was split:
