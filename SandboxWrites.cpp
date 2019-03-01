@@ -28,12 +28,15 @@ namespace {
     	m_pHaveAllocedMem = NULL;
     	m_pPtrToHeap = NULL;
     	m_pSizeOfHeap = NULL;
+    	m_pStackTop = NULL;
+    	m_pStackBot = NULL;
     }
     virtual bool runOnModule(Module &M);
     void SandBoxWrites(Module *pMod, StoreInst* inst, Function::iterator *BB,
     		Value* upperBound, Value* lowerBound);
     void InsertGlobalVars(Module *pMod, TypeManager* typeManager);
     void GetHeapRegion(Module *pMod, LoadInst** lowerBound, LoadInst** upperBound, StoreInst* inst);
+    void UpdateStackPointers(AllocaInst* allocaInst, TypeManager *pTm, FunctionManager *pFm);
 
     // Make inserted globals members for now for easy access
     GlobalVariable *m_pFreeMemBlockHead;
@@ -86,42 +89,13 @@ bool SandboxWritesPass::runOnModule(Module &M)
 				// the memory address of the allocated memory
 				if (isa<AllocaInst>(Inst))
 				{
-/*
-					// Test for mmap / malloc:
-					AllocaInst* inst = dyn_cast<AllocaInst>(Inst);
-
-					//CallInst *ptr_test = funcManager.insertMmapCall(
-					//		dyn_cast<Instruction>(Inst));
-					errs()<<"Inserted Malloc\n";
-					CallInst *ptr_test = funcManager.insertMallocCall(dyn_cast<Instruction>(Inst),
-							NULL);
-
-					// 1. Have pointer variable point to new mmaped memory
-					// 2. Assign a value to the memory
-					// 3. Print from the actual source file
-					//LoadInst* ptr_23 = new LoadInst(ptr_test, "", false, inst);
-					//ptr_23->setAlignment(8);
-					ConstantInt* const_int32_99 = ConstantInt::get(M.getContext(),
-							APInt(64, StringRef("999"), 10));
-					StoreInst* void_24 = new StoreInst(const_int32_99, ptr_test, false, inst);
-					void_24->setAlignment(4);
-
-		    		StoreInst *store_inst = new StoreInst(ptr_test, inst,
-		    				dyn_cast<Instruction>(Inst)->getNextNode());
-		    		LoadInst *loadInst = new LoadInst(m_pPtrToHeap, "", store_inst->getNextNode());
-		    		CallInst *call2 = funcManager.insertPrintfCall(loadInst, true, loadInst->getNextNode());
-		    		LoadInst *loadInst2 = new LoadInst(inst, "", call2->getNextNode());
-		    		CallInst *call3 = funcManager.insertPrintfCall(loadInst2, true, loadInst2->getNextNode());
-		    		CastInst *cast = new BitCastInst(loadInst2, PointerType::get(IntegerType::get(M.getContext(), 32), 0), "",
-		    				call3->getNextNode());
-		    		LoadInst *loadInst3 = new LoadInst(cast, "", cast->getNextNode());
-		    		CallInst *call4 = funcManager.insertPrintfCall(loadInst3, false, loadInst3->getNextNode());
-*/
+					AllocaInst *allocaInst = dyn_cast<AllocaInst>(Inst);
+					UpdateStackPointers(allocaInst, &typeManager, &funcManager);
 				}
 
 				if (isa<StoreInst>(Inst))
 				{
-					if (true/*count == 1*/)
+/*					if (truecount == 1)
 					{
 						StoreInst *inst = dyn_cast<StoreInst>(Inst);
 						LoadInst *loadPtrToHeap;
@@ -132,12 +106,12 @@ bool SandboxWritesPass::runOnModule(Module &M)
 						// we split a basic block.
 						break;
 					}
-					count++;
+					count++;*/
 				}
 
 				if (isa<CallInst>(Inst))
 				{
-					CallInst *callInst = dyn_cast<CallInst>(Inst);
+/*					CallInst *callInst = dyn_cast<CallInst>(Inst);
 					if (funcManager.isMallocCall(callInst))
 					{
 						errs() << "Malloc\n";
@@ -155,34 +129,50 @@ bool SandboxWritesPass::runOnModule(Module &M)
 						Instruction* newInst = funcManager.replaceFreeWithFree(callInst, args);
 						BasicBlock::iterator BI(newInst);
 						Inst = BI;
-					}
-					if (funcManager.isMmapCall(callInst))
-					{
-/*						// Test for inserted AddMemoryBlock()
-						AllocaInst* secBlock = new AllocaInst(
-								typeManager.GetFreeMemBlockPtTy(), "secBlock", callInst);
-						StoreInst *storeMmapInGvar = new StoreInst(callInst,
-								m_pFreeMemBlockHead, false, callInst->getNextNode());
-						CastInst* ptrCast = new PtrToIntInst(callInst,
-								IntegerType::get(M.getContext(), 64), "",
-								storeMmapInGvar->getNextNode());
-						ConstantInt* int8192 = ConstantInt::get(M.getContext(),
-								APInt(32, StringRef("8192"), 10));
-						BinaryOperator* addInst = BinaryOperator::Create(Instruction::Add,
-							  ptrCast, int8192, "", ptrCast->getNextNode());
-						CastInst* ptr_127 = new IntToPtrInst(addInst,
-								typeManager.GetFreeMemBlockPtTy(), "", addInst->getNextNode());
-						StoreInst *last = new StoreInst(ptr_127, secBlock,
-								typeManager.GetFreeMemBlockPtTy(),
-								false, ptr_127->getNextNode());
-						LoadInst *load = new LoadInst(secBlock, "", false, last->getNextNode());
-						funcManager.insertAddMemoryBlockCall(load->getNextNode(), load);*/
-					}
+					}*/
 				}
 			}
 		}
 	}
 	return false;
+}
+
+void SandboxWritesPass::UpdateStackPointers(AllocaInst* allocaInst, TypeManager *pTm, FunctionManager *pFm)
+{
+	Instruction *nextInst = allocaInst->getNextNode();
+	LoadInst *loadStackBot = new LoadInst(m_pStackBot, "", false, nextInst);
+	loadStackBot->setAlignment(8);
+	ICmpInst *cmpInst = new ICmpInst(nextInst,
+			CmpInst::Predicate::ICMP_EQ, loadStackBot,
+			pTm->GetVoidPtrNull(), "");
+
+	TerminatorInst *ifTerm = SplitBlockAndInsertIfThen(cmpInst,
+			nextInst, false);
+
+	// *** Instructions inside the If statement ***
+	CastInst *castToVoidPtr = new BitCastInst(allocaInst,
+			pTm->GetVoidPtrType(),
+			"", ifTerm);
+	StoreInst *storeStackAddr = new StoreInst(castToVoidPtr, m_pStackBot,
+			false, ifTerm);
+	storeStackAddr->setAlignment(8);
+
+/*	// *** Used for testing ***
+	LoadInst *load = new LoadInst(m_pStackBot, "", false, ifTerm);
+	pFm->insertPrintfCall(load, true, ifTerm);*/
+
+	// *** Instructions inside the If statement END ***
+
+	CastInst *castToVoidPtr2 = new BitCastInst(allocaInst,
+			pTm->GetVoidPtrType(),
+			"", nextInst);
+	StoreInst *storeStackAddr2 = new StoreInst(castToVoidPtr2, m_pStackTop,
+			false, nextInst);
+	storeStackAddr2->setAlignment(8);
+
+/*	// ***Used for testing***
+	LoadInst *load2 = new LoadInst(m_pStackTop, "", false, nextInst);
+	pFm->insertPrintfCall(load2, true, nextInst);*/
 }
 
 /*** Function summary - SandboxWritesPass::GetHeapRegion ***
