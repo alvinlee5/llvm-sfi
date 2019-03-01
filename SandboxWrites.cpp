@@ -36,7 +36,7 @@ namespace {
     		Value* upperBound, Value* lowerBound);
     void InsertGlobalVars(Module *pMod, TypeManager* typeManager);
     void GetHeapRegion(Module *pMod, LoadInst** lowerBound, LoadInst** upperBound, StoreInst* inst);
-    void UpdateStackPointers(AllocaInst* allocaInst, TypeManager *pTm, FunctionManager *pFm);
+    void UpdateStackPointers(AllocaInst* allocaInst, TypeManager *pTm);
 
     // Make inserted globals members for now for easy access
     GlobalVariable *m_pFreeMemBlockHead;
@@ -90,7 +90,7 @@ bool SandboxWritesPass::runOnModule(Module &M)
 				if (isa<AllocaInst>(Inst))
 				{
 					AllocaInst *allocaInst = dyn_cast<AllocaInst>(Inst);
-					UpdateStackPointers(allocaInst, &typeManager, &funcManager);
+					UpdateStackPointers(allocaInst, &typeManager);
 				}
 
 				if (isa<StoreInst>(Inst))
@@ -137,7 +137,7 @@ bool SandboxWritesPass::runOnModule(Module &M)
 	return false;
 }
 
-void SandboxWritesPass::UpdateStackPointers(AllocaInst* allocaInst, TypeManager *pTm, FunctionManager *pFm)
+void SandboxWritesPass::UpdateStackPointers(AllocaInst* allocaInst, TypeManager *pTm)
 {
 	Instruction *nextInst = allocaInst->getNextNode();
 	LoadInst *loadStackBot = new LoadInst(m_pStackBot, "", false, nextInst);
