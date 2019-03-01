@@ -36,7 +36,7 @@ namespace {
     		Value* upperBound, Value* lowerBound);
     void InsertGlobalVars(Module *pMod, TypeManager* typeManager);
     void GetHeapRegion(Module *pMod, LoadInst** lowerBound, LoadInst** upperBound, StoreInst* inst);
-    void UpdateStackPointers(AllocaInst* allocaInst, TypeManager *pTm);
+    StoreInst* UpdateStackPointers(AllocaInst* allocaInst, TypeManager *pTm/*, FunctionManager* pFm*/);
 
     // Make inserted globals members for now for easy access
     GlobalVariable *m_pFreeMemBlockHead;
@@ -90,7 +90,15 @@ bool SandboxWritesPass::runOnModule(Module &M)
 				if (isa<AllocaInst>(Inst))
 				{
 					AllocaInst *allocaInst = dyn_cast<AllocaInst>(Inst);
-					UpdateStackPointers(allocaInst, &typeManager);
+					StoreInst* finalInst = UpdateStackPointers(allocaInst, &typeManager/*, &funcManager*/);
+
+					// We absolutely don't want to instrument on the code
+					// we've inserted ourselves, so skip all basic blocks
+					// and instructions we've just inserted
+					BB = finalInst->getParent()->getIterator();
+					Inst = finalInst->getIterator();
+					BBE = BB->end();
+					continue;
 				}
 
 				if (isa<StoreInst>(Inst))
@@ -137,7 +145,7 @@ bool SandboxWritesPass::runOnModule(Module &M)
 	return false;
 }
 
-void SandboxWritesPass::UpdateStackPointers(AllocaInst* allocaInst, TypeManager *pTm)
+StoreInst* SandboxWritesPass::UpdateStackPointers(AllocaInst* allocaInst, TypeManager *pTm/*, FunctionManager* pFm*/)
 {
 	Instruction *nextInst = allocaInst->getNextNode();
 	LoadInst *loadStackBot = new LoadInst(m_pStackBot, "", false, nextInst);
@@ -173,6 +181,8 @@ void SandboxWritesPass::UpdateStackPointers(AllocaInst* allocaInst, TypeManager 
 /*	// ***Used for testing***
 	LoadInst *load2 = new LoadInst(m_pStackTop, "", false, nextInst);
 	pFm->insertPrintfCall(load2, true, nextInst);*/
+
+	return storeStackAddr2;
 }
 
 /*** Function summary - SandboxWritesPass::GetHeapRegion ***
