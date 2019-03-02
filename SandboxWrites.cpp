@@ -36,7 +36,7 @@ namespace {
     void SandBoxWrites(Module *pMod, StoreInst* inst, Function::iterator *BB,
     		Value* upperBound, Value* lowerBound);
     void InsertGlobalVars(Module *pMod, TypeManager* typeManager);
-    void GetHeapRegion(Module *pMod, LoadInst** lowerBound, LoadInst** upperBound, StoreInst* inst);
+    void GetHeapRegion(LoadInst** lowerBound, LoadInst** upperBound, StoreInst* inst);
     Instruction* UpdateStackPointers(AllocaInst* allocaInst, TypeManager *pTm/*, FunctionManager* pFm*/);
 
     // Make inserted globals members for now for easy access
@@ -87,12 +87,12 @@ bool SandboxWritesPass::runOnModule(Module &M)
 			for (BasicBlock::iterator Inst = BB->begin(), BBE = BB->end();
 					Inst != BBE; ++Inst)
 			{
-/*				// every time we allocate memory we want to store
+				// every time we allocate memory we want to store
 				// the memory address of the allocated memory
 				if (isa<AllocaInst>(Inst))
 				{
 					AllocaInst *allocaInst = dyn_cast<AllocaInst>(Inst);
-					Instruction* finalInst = UpdateStackPointers(allocaInst, &typeManager, &funcManager);
+					Instruction* finalInst = UpdateStackPointers(allocaInst, &typeManager/*, &funcManager*/);
 
 					// We absolutely don't want to instrument on the code
 					// we've inserted ourselves, so skip all basic blocks
@@ -101,27 +101,29 @@ bool SandboxWritesPass::runOnModule(Module &M)
 					Inst = finalInst->getIterator();
 					BBE = BB->end();
 					continue;
-				}*/
+				}
 
 				if (isa<StoreInst>(Inst))
 				{
-/*					if (truecount == 1)
+
+					if (true/*count == 1*/)
 					{
 						StoreInst *inst = dyn_cast<StoreInst>(Inst);
 						LoadInst *loadPtrToHeap;
 						LoadInst *loadUpperBound;
-						GetHeapRegion(&M, &loadPtrToHeap, &loadUpperBound, inst);
+						GetHeapRegion(&loadPtrToHeap, &loadUpperBound, inst);
 						SandBoxWrites(&M, inst, &BB, loadPtrToHeap, loadUpperBound);
 						// Break since current iterator is invalidated after
 						// we split a basic block.
 						break;
 					}
-					count++;*/
+					count++;
+
 				}
 
 				if (isa<CallInst>(Inst))
 				{
-					CallInst *callInst = dyn_cast<CallInst>(Inst);
+/*					CallInst *callInst = dyn_cast<CallInst>(Inst);
 					if (funcManager.isMallocCall(callInst))
 					{
 						errs() << "Malloc\n";
@@ -138,7 +140,7 @@ bool SandboxWritesPass::runOnModule(Module &M)
 						Instruction* newInst = funcManager.replaceFreeWithFree(callInst, args);
 						BasicBlock::iterator BI(newInst);
 						Inst = BI;
-					}
+					}*/
 				}
 			}
 		}
@@ -196,7 +198,6 @@ to compute the upper and lower address range of the SFI
 heap region and returns those values.
 
 @Inputs:
-- pMod: pointer to a Module
 - inst: pointer to a (store) instruction
 
 @brief
@@ -208,40 +209,12 @@ range
 - lowerBound: lower bound of heap address range to be passed to SandBoxWrites()
 - upperBound: upper bound of heap address range to be passed to SandBoxWrites()
 */
-void SandboxWritesPass::GetHeapRegion(Module *pMod, LoadInst** lowerBound, LoadInst** upperBound, StoreInst* inst)
+void SandboxWritesPass::GetHeapRegion(LoadInst** lowerBound, LoadInst** upperBound, StoreInst* inst)
 {
-	LoadInst *loadHeap = new LoadInst(m_pPtrToHeap, "", false, inst);
-	loadHeap->setAlignment(8);
-
-	CastInst * ptrToHeapToInt = new PtrToIntInst(loadHeap,
-			IntegerType::get(pMod->getContext(), 32), "", inst);
-
-	// remove this line in Android, since ARMv7 is 32-bits
-	CastInst *zeroExt = new ZExtInst(ptrToHeapToInt,
-			IntegerType::get(pMod->getContext(), 64), "", inst);
-
-	LoadInst *sizeOfHeap = new LoadInst(m_pSizeOfHeap, "", false, inst);
-	sizeOfHeap->setAlignment(8);
-
-	// zeroExt arg will be ptrToHeapToInt in Android
-	BinaryOperator* addInst = BinaryOperator::Create(Instruction::Add,
-			zeroExt, sizeOfHeap, "", inst);
-
-	CastInst* upBound = new IntToPtrInst(addInst,
-			PointerType::get(IntegerType::get(pMod->getContext(), 8), 0), "", inst);
-
-	AllocaInst* allocaForUpperBound = new AllocaInst(
-			PointerType::get(IntegerType::get(pMod->getContext(), 8), 0),
-			"", inst);
-
-	StoreInst *storeMmapInGvar = new StoreInst(upBound,
-			allocaForUpperBound, false, inst);
-	storeMmapInGvar->setAlignment(8);
-
 	LoadInst* loadPtrToHeap = new LoadInst(m_pPtrToHeap, "", false, inst);
 	loadPtrToHeap->setAlignment(8);
 
-	LoadInst* loadUpperBound = new LoadInst(allocaForUpperBound, "", false, inst);
+	LoadInst* loadUpperBound = new LoadInst(m_pPtrToHeapTop, "", false, inst);
 	loadUpperBound->setAlignment(8);
 
 	*lowerBound = loadPtrToHeap;
