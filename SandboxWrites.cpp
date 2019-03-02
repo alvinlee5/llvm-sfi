@@ -30,6 +30,7 @@ namespace {
     	m_pSizeOfHeap = NULL;
     	m_pStackTop = NULL;
     	m_pStackBot = NULL;
+    	m_pPtrToHeapTop = NULL;
     }
     virtual bool runOnModule(Module &M);
     void SandBoxWrites(Module *pMod, StoreInst* inst, Function::iterator *BB,
@@ -42,6 +43,7 @@ namespace {
     GlobalVariable *m_pFreeMemBlockHead;
     GlobalVariable *m_pHaveAllocedMem;
     GlobalVariable *m_pPtrToHeap;
+    GlobalVariable *m_pPtrToHeapTop;
     GlobalVariable *m_pSizeOfHeap;
     GlobalVariable *m_pStackTop;
     GlobalVariable *m_pStackBot;
@@ -53,7 +55,7 @@ bool SandboxWritesPass::runOnModule(Module &M)
 	TypeManager typeManager (&M);
 	InsertGlobalVars(&M, &typeManager);
 	FunctionManager funcManager(&M, &typeManager, m_pFreeMemBlockHead, m_pHaveAllocedMem,
-			m_pPtrToHeap);
+			m_pPtrToHeap, m_pPtrToHeapTop);
 	int count = 0;
 	for (Module::iterator F = M.begin(), ME = M.end(); F != ME; ++F)
 	{
@@ -363,6 +365,15 @@ void SandboxWritesPass::InsertGlobalVars(Module *pMod, TypeManager* typeManager)
 	m_pPtrToHeap->setAlignment(8);
 	ConstantPointerNull* nullForVoidPtr = ConstantPointerNull::get(voidPtrType);
 	m_pPtrToHeap->setInitializer(nullForVoidPtr);
+
+	m_pPtrToHeapTop = new GlobalVariable(/*Module=*/*pMod,
+	/*Type=*/voidPtrType,
+	/*isConstant=*/false,
+	/*Linkage=*/GlobalValue::ExternalLinkage,
+	/*Initializer=*/0, // has initializer, specified below
+	/*Name=*/"llvm_ptrToHeapTop");
+	m_pPtrToHeapTop->setAlignment(8);
+	m_pPtrToHeapTop->setInitializer(nullForVoidPtr);
 
 	m_pStackTop = new GlobalVariable(/*Module=*/*pMod,
 	/*Type=*/voidPtrType,
