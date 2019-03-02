@@ -904,6 +904,25 @@ void FunctionManager::defineMalloc()
 	StoreInst* storeHeapAddrToGvar = new StoreInst(castPtrToVoidType, m_pPtrToHeap, false, label_202);
 	storeHeapAddrToGvar->setAlignment(8);
 
+	// Added after the "added after the initial implementation"
+	// Have gvar point to end of llvm_heap
+	LoadInst *loadHeap = new LoadInst(m_pPtrToHeap, "", false, label_202);
+	loadHeap->setAlignment(8);
+	CastInst * ptrToHeapToInt = new PtrToIntInst(loadHeap,
+			IntegerType::get(m_pMod->getContext(), 32), "", label_202);
+
+	// remove this line in Android, since ARMv7 is 32-bits
+	CastInst *zeroExt = new ZExtInst(ptrToHeapToInt,
+			IntegerType::get(m_pMod->getContext(), 64), "", label_202);
+
+	// zeroExt arg will be ptrToHeapToInt in Android
+	BinaryOperator* addInst = BinaryOperator::Create(Instruction::Add,
+			zeroExt, allocMem_5Pages, "", label_202);
+	CastInst* upBound = new IntToPtrInst(addInst,
+			voidPtrType, "", label_202);
+	StoreInst* storeHeapTop = new StoreInst(upBound, m_pPtrToHeapTop, false, label_202);
+	storeHeapTop->setAlignment(8);
+
 	LoadInst* ptr_267 = new LoadInst(ptr_ptr, "", false, label_202);
 	ptr_267->setAlignment(8);
 	ICmpInst* int1_268 = new ICmpInst(*label_202, ICmpInst::ICMP_NE, ptr_267, m_pTypeManager->GetFreeMemBlockNull(), "");

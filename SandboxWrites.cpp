@@ -87,12 +87,12 @@ bool SandboxWritesPass::runOnModule(Module &M)
 			for (BasicBlock::iterator Inst = BB->begin(), BBE = BB->end();
 					Inst != BBE; ++Inst)
 			{
-				// every time we allocate memory we want to store
+/*				// every time we allocate memory we want to store
 				// the memory address of the allocated memory
 				if (isa<AllocaInst>(Inst))
 				{
 					AllocaInst *allocaInst = dyn_cast<AllocaInst>(Inst);
-					Instruction* finalInst = UpdateStackPointers(allocaInst, &typeManager/*, &funcManager*/);
+					Instruction* finalInst = UpdateStackPointers(allocaInst, &typeManager, &funcManager);
 
 					// We absolutely don't want to instrument on the code
 					// we've inserted ourselves, so skip all basic blocks
@@ -101,7 +101,7 @@ bool SandboxWritesPass::runOnModule(Module &M)
 					Inst = finalInst->getIterator();
 					BBE = BB->end();
 					continue;
-				}
+				}*/
 
 				if (isa<StoreInst>(Inst))
 				{
@@ -121,7 +121,7 @@ bool SandboxWritesPass::runOnModule(Module &M)
 
 				if (isa<CallInst>(Inst))
 				{
-/*					CallInst *callInst = dyn_cast<CallInst>(Inst);
+					CallInst *callInst = dyn_cast<CallInst>(Inst);
 					if (funcManager.isMallocCall(callInst))
 					{
 						errs() << "Malloc\n";
@@ -130,7 +130,6 @@ bool SandboxWritesPass::runOnModule(Module &M)
 						Instruction* newInst = funcManager.replaceMallocWithMalloc(callInst, args);
 						BasicBlock::iterator BI(newInst);
 						Inst = BI;
-
 					}
 					if (funcManager.isFreeCall(callInst))
 					{
@@ -139,7 +138,7 @@ bool SandboxWritesPass::runOnModule(Module &M)
 						Instruction* newInst = funcManager.replaceFreeWithFree(callInst, args);
 						BasicBlock::iterator BI(newInst);
 						Inst = BI;
-					}*/
+					}
 				}
 			}
 		}
