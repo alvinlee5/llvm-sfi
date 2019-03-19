@@ -72,6 +72,7 @@ bool SandboxWritesPass::runOnModule(Module &M)
 		StringRef funcName5("llvm_scan_merge");
 		StringRef funcName6("llvm_free");
 
+		//errs() << func->getName() << "\n";
 		if ((func->getName()).equals(funcName1) ||
 				(func->getName()).equals(funcName2) ||
 				(func->getName()).equals(funcName3) ||
@@ -132,7 +133,8 @@ bool SandboxWritesPass::runOnModule(Module &M)
 				if (isa<CallInst>(Inst))
 				{
 					CallInst *callInst = dyn_cast<CallInst>(Inst);
-					if (funcManager.isMallocCall(callInst) && count == 0)
+					if ((funcManager.isMallocCall(callInst) || funcManager.isNewCall(callInst))
+							&& count <= 2)
 					{
 						count++;
 						Value *args = funcManager.
@@ -141,7 +143,7 @@ bool SandboxWritesPass::runOnModule(Module &M)
 						BasicBlock::iterator BI(newInst);
 						Inst = BI;
 					}
-					if (funcManager.isFreeCall(callInst))
+					if (funcManager.isFreeCall(callInst) || funcManager.isDeleteCall(callInst))
 					{
 						Value *args = funcManager.extractFreeArgs(callInst);
 						Instruction* newInst = funcManager.replaceFreeWithFree(callInst, args);

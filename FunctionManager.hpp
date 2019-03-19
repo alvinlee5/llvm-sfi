@@ -29,6 +29,8 @@ class FunctionManager
 		bool isMallocCall(CallInst *callInst);
 		bool isFreeCall(CallInst *callInst);
 		bool isMmapCall(CallInst *callInst); // for debugging
+		bool isNewCall(CallInst *callInst);
+		bool isDeleteCall(CallInst *callInst);
 		Value* extractMallocArgs(CallInst *callInst);
 		Value* extractFreeArgs(CallInst *callInst);
 

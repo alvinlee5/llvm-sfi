@@ -1609,6 +1609,56 @@ bool FunctionManager::isFreeCall(CallInst* callInst)
 	return false;
 }
 
+bool FunctionManager::isNewCall(CallInst* callInst)
+{
+	Function* funcCalled = callInst->getCalledFunction();
+	if (!funcCalled)
+	{
+		Value* v = callInst->getCalledValue();
+		Value* sv = v->stripPointerCasts();
+		StringRef funcName = sv->getName();
+		StringRef strMalloc("_Znwm");
+		if (funcName.equals(strMalloc))
+		{
+			return true;
+		}
+		return false;
+	}
+
+	StringRef funcName = funcCalled->getName();
+	StringRef strMalloc("_Znwm");
+	if (funcName.equals(strMalloc))
+	{
+		return true;
+	}
+	return false;
+}
+
+bool FunctionManager::isDeleteCall(CallInst* callInst)
+{
+	Function* funcCalled = callInst->getCalledFunction();
+	if (!funcCalled)
+	{
+		Value* v = callInst->getCalledValue();
+		Value* sv = v->stripPointerCasts();
+		StringRef funcName = sv->getName();
+		StringRef strMalloc("_ZdlPv");
+		if (funcName.equals(strMalloc))
+		{
+			return true;
+		}
+		return false;
+	}
+
+	StringRef funcName = funcCalled->getName();
+	StringRef strMalloc("_ZdlPv");
+	if (funcName.equals(strMalloc))
+	{
+		return true;
+	}
+	return false;
+}
+
 bool FunctionManager::isMmapCall(CallInst *callInst)
 {
 	Function* funcCalled = callInst->getCalledFunction();
