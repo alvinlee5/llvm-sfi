@@ -1789,6 +1789,7 @@ Value* FunctionManager::extractMemcpyArgs(CallInst *callInst)
 {
 	CallSite CS(callInst);
 	Value *args;
+	// first arg is destination address
 	auto arg = CS.arg_begin();
 	args = dyn_cast<Value>(arg);
 	return args;
