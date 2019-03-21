@@ -117,6 +117,60 @@ void FunctionManager::declareMmap()
 	 m_pFuncMmap->setAttributes(func_mmap_PAL);
 }
 
+void FunctionManager::declareMemcpy()
+{
+	std::vector<Type*>memcpyFuncParams;
+	memcpyFuncParams.push_back(m_pTypeManager->GetVoidPtrType());
+	memcpyFuncParams.push_back(m_pTypeManager->GetVoidPtrType());
+	memcpyFuncParams.push_back(IntegerType::get(m_pMod->getContext(), 64));
+	memcpyFuncParams.push_back(IntegerType::get(m_pMod->getContext(), 32));
+	memcpyFuncParams.push_back(IntegerType::get(m_pMod->getContext(), 1));
+	FunctionType* memcpyFuncType = FunctionType::get(
+			/*Result=*/Type::getVoidTy(m_pMod->getContext()),
+			/*Params=*/memcpyFuncParams,
+			/*isVarArg=*/false);
+
+	Function* func_llvm_memcpy_p0i8_p0i8_i64 = m_pMod->getFunction("llvm.memcpy.p0i8.p0i8.i64");
+	if (!func_llvm_memcpy_p0i8_p0i8_i64)
+	{
+		func_llvm_memcpy_p0i8_p0i8_i64 = Function::Create(
+		/*Type=*/memcpyFuncType,
+		/*Linkage=*/GlobalValue::ExternalLinkage,
+		/*Name=*/"llvm.memcpy.p0i8.p0i8.i64", m_pMod); // (external, no body)
+		func_llvm_memcpy_p0i8_p0i8_i64->setCallingConv(CallingConv::C);
+	}
+	AttributeSet func_llvm_memcpy_p0i8_p0i8_i64_PAL;
+	{
+		SmallVector<AttributeSet, 4> Attrs;
+		AttributeSet PAS;
+		{
+			AttrBuilder B;
+			B.addAttribute(Attribute::NoCapture);
+			PAS = AttributeSet::get(m_pMod->getContext(), 1U, B);
+		}
+
+		Attrs.push_back(PAS);
+		{
+			AttrBuilder B;
+			B.addAttribute(Attribute::ReadOnly);
+			B.addAttribute(Attribute::NoCapture);
+			PAS = AttributeSet::get(m_pMod->getContext(), 2U, B);
+		}
+
+		Attrs.push_back(PAS);
+		{
+			AttrBuilder B;
+			B.addAttribute(Attribute::NoUnwind);
+			PAS = AttributeSet::get(m_pMod->getContext(), ~0U, B);
+		}
+
+		Attrs.push_back(PAS);
+		func_llvm_memcpy_p0i8_p0i8_i64_PAL = AttributeSet::get(m_pMod->getContext(), Attrs);
+
+	}
+	func_llvm_memcpy_p0i8_p0i8_i64->setAttributes(func_llvm_memcpy_p0i8_p0i8_i64_PAL);
+}
+
 void FunctionManager::declarePrintf()
 {
 	PointerType* voidPtrType = PointerType::get(IntegerType::get(m_pMod->getContext(), 8), 0);
@@ -1602,6 +1656,31 @@ bool FunctionManager::isFreeCall(CallInst* callInst)
 
 	StringRef funcName = funcCalled->getName();
 	StringRef strFree("free");
+	if (funcName.equals(strFree))
+	{
+		return true;
+	}
+	return false;
+}
+
+bool FunctionManager::isMemcpyCall(CallInst* callInst)
+{
+	Function* funcCalled = callInst->getCalledFunction();
+	if (!funcCalled)
+	{
+		Value* v = callInst->getCalledValue();
+		Value* sv = v->stripPointerCasts();
+		StringRef funcName = sv->getName();
+		StringRef strFree("llvm.memcpy.p0i8.p0i8.i64");
+		if (funcName.equals(strFree))
+		{
+			return true;
+		}
+		return false;
+	}
+
+	StringRef funcName = funcCalled->getName();
+	StringRef strFree("llvm.memcpy.p0i8.p0i8.i64");
 	if (funcName.equals(strFree))
 	{
 		return true;

@@ -28,6 +28,7 @@ class FunctionManager
 		// Malloc related calls
 		bool isMallocCall(CallInst *callInst);
 		bool isFreeCall(CallInst *callInst);
+		bool isMemcpyCall(CallInst *callInst);
 		bool isMmapCall(CallInst *callInst); // for debugging
 		bool isNewCall(CallInst *callInst);
 		bool isDeleteCall(CallInst *callInst);
@@ -73,6 +74,7 @@ class FunctionManager
 	// helpers
 	private:
 		void declareMmap();
+		void declareMemcpy();
 		void declarePrintf();
 
 		void declareAddMemoryBlock();

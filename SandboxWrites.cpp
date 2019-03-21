@@ -150,6 +150,10 @@ bool SandboxWritesPass::runOnModule(Module &M)
 						BasicBlock::iterator BI(newInst);
 						Inst = BI;
 					}
+					if (funcManager.isMemcpyCall(callInst))
+					{
+						errs() << "MEMCPY\n";
+					}
 				}
 			}
 		}
