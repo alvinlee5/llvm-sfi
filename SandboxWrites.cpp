@@ -132,7 +132,7 @@ bool SandboxWritesPass::runOnModule(Module &M)
 				{
 					CallInst *callInst = dyn_cast<CallInst>(Inst);
 					if ((funcManager.isMallocCall(callInst) || funcManager.isNewCall(callInst))
-							&& count <= 2)
+							/*&& count <= 0*/)
 					{
 						count++;
 						Value *args = funcManager.
