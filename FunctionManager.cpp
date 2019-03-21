@@ -1784,3 +1784,12 @@ Value* FunctionManager::extractFreeArgs(CallInst *callInst)
 	}
 	return args;
 }
+
+Value* FunctionManager::extractMemcpyArgs(CallInst *callInst)
+{
+	CallSite CS(callInst);
+	Value *args;
+	auto arg = CS.arg_begin();
+	args = dyn_cast<Value>(arg);
+	return args;
+}

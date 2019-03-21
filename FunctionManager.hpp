@@ -34,6 +34,7 @@ class FunctionManager
 		bool isDeleteCall(CallInst *callInst);
 		Value* extractMallocArgs(CallInst *callInst);
 		Value* extractFreeArgs(CallInst *callInst);
+		Value* extractMemcpyArgs(CallInst *callInst);
 
 		// custom malloc functions
 		CallInst* insertAddMemoryBlockCall(Instruction *inst, Value *param); // for testing

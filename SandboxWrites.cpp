@@ -33,11 +33,9 @@ namespace {
     	m_pPtrToHeapTop = NULL;
     }
     virtual bool runOnModule(Module &M);
-    void SandBoxWrites(Module *pMod, StoreInst* inst, Function::iterator *BB,
-    		Value* upperBound, Value* lowerBound);
-    void SandBoxWritesV2(Module *pMod, StoreInst* inst, Function::iterator *BB,
-    		Value *heapLowerBound, Value *heapUpperBound, Value *stackTop, Value *stackBot);
     void SandBoxWritesV3(Module *pMod, StoreInst* inst, Function::iterator *BB,
+    		Value *heapLowerBound, Value *heapUpperBound, Value *stackTop, Value *stackBot);
+    void SandboxWritesMemcpy(Module *pMod, StoreInst* inst, Function::iterator *BB,
     		Value *heapLowerBound, Value *heapUpperBound, Value *stackTop, Value *stackBot);
     void InsertGlobalVars(Module *pMod, TypeManager* typeManager);
     void GetSFIRegion(LoadInst** heapLower, LoadInst** heapUpper,
@@ -153,6 +151,8 @@ bool SandboxWritesPass::runOnModule(Module &M)
 					if (funcManager.isMemcpyCall(callInst))
 					{
 						errs() << "MEMCPY\n";
+						Value *args = funcManager.extractMemcpyArgs(callInst);
+						funcManager.insertPrintfCall(args, true, callInst->getNextNode());
 					}
 				}
 			}
