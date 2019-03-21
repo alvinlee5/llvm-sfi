@@ -219,10 +219,10 @@ to compute the upper and lower address range of the SFI
 heap region and returns those values.
 
 @Inputs:
-- inst: pointer to a (store) instruction
+- inst: pointer to an instruction (StoreInst OR CallInst to memcpy)
 
 @brief
-An if statement is wrapped around the (store) instruction, and the
+An if statement is wrapped around the instruction, and the
 write only takes place if it is within the upper/lower bound address
 range
 
