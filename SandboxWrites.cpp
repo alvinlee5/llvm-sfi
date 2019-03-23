@@ -119,8 +119,21 @@ bool SandboxWritesPass::runOnModule(Module &M)
 						Value *val = inst->getOperand(1);
 						if (isa<GlobalVariable>(val))
 						{
-							errs()<<"Detected Global\n";
+							errs()<<"Detected Global: " <<*val<<"\n";
 							continue;
+						}
+						else
+						{
+
+							// For some reason isa<StoreInst> check will fail
+							// So we have a backup check here using the name of the gvar
+							StringRef gvarName = val->getName();
+							GlobalVariable *gVar = M.getNamedGlobal(gvarName);
+							if (gVar)
+							{
+								errs()<<"Detected Global\n";
+								continue;
+							}
 						}
 						LoadInst *heapLower;
 						LoadInst *heapUpper;
