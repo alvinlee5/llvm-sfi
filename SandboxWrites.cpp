@@ -113,10 +113,15 @@ bool SandboxWritesPass::runOnModule(Module &M)
 
 				if (isa<StoreInst>(Inst))
 				{
-
 					if (true)
 					{
 						StoreInst *inst = dyn_cast<StoreInst>(Inst);
+						Value *val = inst->getOperand(1);
+						if (isa<GlobalVariable>(val))
+						{
+							errs()<<"Detected Global\n";
+							continue;
+						}
 						LoadInst *heapLower;
 						LoadInst *heapUpper;
 						LoadInst *stackBot;
